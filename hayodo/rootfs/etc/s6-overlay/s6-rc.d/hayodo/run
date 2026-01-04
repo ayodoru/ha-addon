@@ -1,0 +1,100 @@
+#!/usr/bin/with-contenv bashio
+# shellcheck shell=bash
+
+CERT_DIR=/data/letsencrypt
+WORK_DIR=/data/dehydrated
+API_URL="https://api.ayodo.ru/v1"
+
+TOKEN=$(bashio::config 'token')
+LOCAL_HOST=$(bashio::config 'local_host')
+LOCAL_PORT=$(bashio::config 'local_port')
+EMAIL=$(bashio::config 'email')
+
+# Define key parameters
+KEY_TYPE="rsa"
+KEY_LENGTH="4096"
+KEY_NAME="ayodo_rsa"
+KEY_COMMENT=$EMAIL
+KEY_DIR="/config/.ssh"
+KEY_PATH="$KEY_DIR/$KEY_NAME"
+
+if [[ -f "$KEY_PATH" && -f "$KEY_PATH.pub" ]]; then
+    echo " Ⓐ SSH keys already exists"
+else
+  echo " Ⓐ Generating SSH key pair..."
+  if [[ -d $KEY_DIR ]]; then
+      rm -rf $KEY_DIR
+  fi
+  # Generate the SSH key pair
+  mkdir $KEY_DIR
+  ssh-keygen -t "$KEY_TYPE" -b "$KEY_LENGTH" -f "$KEY_PATH" -C "$KEY_COMMENT" -N ""
+  if [ $? -eq 0 ]; then
+      echo " Ⓐ SSH key pair generated successfully:"
+  else
+      echo " Ⓐ Error generating SSH key pair."
+      exit 1
+  fi
+fi
+
+PUBLIC_KEY=$(<"$KEY_PATH.pub")
+
+echo " Ⓐ Request to Ayodo API..."
+if ! response=$(curl -X POST\
+    -L "$API_URL/connect/tunnel" \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json" \
+    -d "{\"token\":\"${TOKEN}\", \"public_key\":\"${PUBLIC_KEY}\"}");
+then
+    bashio::log.fatal "Something went wrong contacting the API. Response: {$response}"
+    return "${__BASHIO_EXIT_NOK}"
+fi
+
+if (bashio::jq.exists "${response}" ".code") && (bashio::jq "${response}" ".code" != 200); then
+    bashio::log.fatal "Something went wrong contacting the API. Response: {$response}"
+    return "${__BASHIO_EXIT_NOK}"
+fi
+
+# Get data from response
+USER=$(bashio::jq "${response}" ".ssh_user")
+HOST=$(bashio::jq "${response}" ".ssh_host")
+TUNNEL_PORT=$(bashio::jq "${response}" ".tunnel_port")
+SSH_PORT=$(bashio::jq "${response}" ".ssh_port")
+DOMAIN=$(bashio::jq "${response}" ".domain")
+
+if [[ "$USER" == "null" || "$HOST" == "null" || "$TUNNEL_PORT" == "null" || "$SSH_PORT" == "null" || "$DOMAIN" == "null" ]] ; then
+    bashio::log.fatal "Something went wrong contacting the API. Response: {$response}"
+    return "${__BASHIO_EXIT_NOK}"
+fi
+
+echo " Ⓐ Got data from API."
+
+# Init folder structs
+mkdir -p "${CERT_DIR}"
+mkdir -p "${WORK_DIR}"
+echo "$DOMAIN" > "${WORK_DIR}/domains.txt"
+
+if bashio::config.true "lets_encrypt.accept_terms"; then
+  # Clean up possible stale lock file
+  if [ -e "${WORK_DIR}/lock" ]; then
+      rm -f "${WORK_DIR}/lock"
+      bashio::log.warning " Ⓐ Reset dehydrated lock file"
+  fi
+  # shellcheck disable=SC1091
+  . /root/renew_certs.sh
+  renew_certs "${CERT_DIR}" "${WORK_DIR}"
+
+  echo " Ⓐ Add cron task for renew"
+  echo "0 3 * * * run-parts /etc/periodic/daily >> /data/last_run.log 2>&1" > /etc/crontabs/root
+fi
+
+echo " Ⓐ Create tunnel..."
+autossh -M 20000 -fN -p "$SSH_PORT" -R "${TUNNEL_PORT}":"${LOCAL_HOST}":"${LOCAL_PORT}" "${USER}"@"${HOST}" -i $KEY_PATH \
+ -o "ServerAliveInterval=60" \
+ -o "ServerAliveCountMax=3" \
+ -o "PubkeyAuthentication=yes" \
+ -o "PasswordAuthentication=no" \
+ -o "StrictHostKeyChecking=no"
+
+echo " Ⓐ Tunnel successfully created."
+echo " Ⓐ Start UI"
+python3 /root/webui.py

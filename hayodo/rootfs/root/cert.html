@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Certificate Status</title>
+    <style>
+        :root {
+            --primary-color: {{ theme.primary }};
+            --bg-color: {{ theme.bg }};
+            --bg-secondary: {{ theme.bg2 }};
+            --text-color: {{ theme.text }};
+            --card-bg: {{ theme.card }};
+        }
+
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        h2, h3 {
+            color: var(--primary-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+
+        th {
+            background: var(--bg-secondary);
+            text-align: left;
+            color: var(--text-color);
+        }
+
+        tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        pre {
+            background: var(--card-bg);
+            padding: 12px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--bg-secondary);
+            white-space: pre-wrap;
+            color: var(--text-color);
+        }
+
+        .bad {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        .good {
+            color: #51cf66;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Let's Encrypt Certificates Status</h2>
+
+<table>
+    <tr><th>Domain</th><th>Valid From</th><th>Valid To</th><th>Expiration (days)</th></tr>
+    {% for item in certs %}
+    <tr>
+        <td>{{ item.domain }}</td>
+        <td>{{ item.start }}</td>
+        <td>{{ item.end }}</td>
+        <td class="{% if item.days < 30 %}bad{% else %}good{% endif %}">
+            {{ item.days }}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% if log %}
+<h3>Last renewal log:</h3>
+<pre>{{ log }}</pre>
+{% endif %}
+
+</body>
+</html>

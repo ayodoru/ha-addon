@@ -1,0 +1,32 @@
+configuration:
+  token:
+    name: Token
+    description: Token from your Ayodo.ru profile
+  local_host:
+    name: HomeAssistant host
+    description: Local HomeAssistant host (default homeassistant)
+  local_port:
+    name: HomeAssistant port
+    description: Local HomeAssistant port (default 8123)
+  email:
+    name: Email
+    description: Your email for ssh key generating
+  lets_encrypt:
+    name: Let's Encrypt
+    description: Let's Encrypt configuration
+    fields:
+      accept_terms:
+        name: Accept terms
+        description: Accept Let's Encrypt terms
+      algo:
+        name: Algorithm
+        description: Algorithm for Let's Encrypt certificate
+      certfile:
+        name: Certificate file
+        description: Certificate file for Let's Encrypt certificate
+      keyfile:
+        name: Key file
+        description: Key file for Let's Encrypt certificate
+      renew_days:
+        name: Renew days
+        description: Renew days for Let's Encrypt certificate

@@ -1,0 +1,13 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# Check certificate renewal
+# ==============================================================================
+CERT_DIR=/data/letsencrypt
+WORK_DIR=/data/dehydrated
+
+if bashio::config.true "lets_encrypt.accept_terms"; then
+  # shellcheck disable=SC1091
+  . /root/renew_certs.sh
+  renew_certs "${CERT_DIR}" "${WORK_DIR}"
+fi

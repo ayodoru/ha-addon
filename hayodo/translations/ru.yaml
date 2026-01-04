@@ -1,0 +1,32 @@
+configuration:
+  token:
+    name: Токен
+    description: Токен из личного кабинета Ayodo.ru
+  local_host:
+    name: HomeAssistant host
+    description: Локальный хост или IP HomeAssistant (по умолчанию homeassistant)
+  local_port:
+    name: HomeAssistant port
+    description: Локальный порт HomeAssistant port (по умолчанию 8123)
+  email:
+    name: Email
+    description: Email для генерации ssh ключей (необязательный)
+  lets_encrypt:
+    name: Let's Encrypt
+    description: Конфигурация для генерации сертификата
+    fields:
+      accept_terms:
+        name: Принять условия
+        description: Принять условия для генерации сертификата
+      algo:
+        name: Алгоритм
+        description: Алгоритм для генерации Let's Encrypt сертификата
+      certfile:
+        name: Файл сертификата
+        description: Файл для сохранения Let's Encrypt сертификата
+      keyfile:
+        name: Файл ключа
+        description: Файл для сохранения Let's Encrypt ключа
+      renew_days:
+        name: Срок обновления
+        description: Остаток дней для обновления сертификата

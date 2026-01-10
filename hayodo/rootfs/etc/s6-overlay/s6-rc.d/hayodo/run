@@ -67,6 +67,11 @@ if [[ "$USER" == "null" || "$HOST" == "null" || "$TUNNEL_PORT" == "null" || "$SS
 fi
 
 echo " Ⓐ Got data from API."
+bashio::log.info " Ⓐ Domain: ${DOMAIN}"
+bashio::log.info " Ⓐ SSH user: ${USER}"
+bashio::log.info " Ⓐ SSH host: ${HOST}"
+bashio::log.info " Ⓐ SSH port: ${SSH_PORT}"
+bashio::log.info " Ⓐ Tunnel port: ${TUNNEL_PORT}"
 
 # Init folder structs
 mkdir -p "${CERT_DIR}"
@@ -88,6 +93,12 @@ if bashio::config.true "lets_encrypt.accept_terms"; then
 fi
 
 echo " Ⓐ Create tunnel..."
+
+# SSH options for persistent tunnel
+SSH_CMD="ssh -p $SSH_PORT -N -R ${TUNNEL_PORT}:${LOCAL_HOST}:${LOCAL_PORT} ${USER}@${HOST} -i $KEY_PATH"
+bashio::log.info "SSH_CMD: $SSH_CMD"
+$SSH_CMD
+
 autossh -M 20000 -fN -p "$SSH_PORT" -R "${TUNNEL_PORT}":"${LOCAL_HOST}":"${LOCAL_PORT}" "${USER}"@"${HOST}" -i $KEY_PATH \
  -o "ServerAliveInterval=60" \
  -o "ServerAliveCountMax=3" \

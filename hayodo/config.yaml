@@ -33,15 +33,15 @@ options:
   email: ""
 schema:
   token: str
+  accept_terms: bool
+  email: str
   lets_encrypt:
-    accept_terms: bool
     algo: list(rsa|prime256v1|secp384r1)
     certfile: str
     keyfile: str
     renew_days: int
   local_host: str
   local_port: int
-  email: str
 
 ingress: true
 panel_icon: mdi:certificate

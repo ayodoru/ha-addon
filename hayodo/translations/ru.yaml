@@ -11,13 +11,13 @@ configuration:
   email:
     name: Email
     description: Email для генерации ssh ключей (необязательный)
+  accept_terms:
+    name: сгенерировать сертификат Let's Encrypt
+    description: Принять <a href="https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf" target="_blank">условия Let's Encrypt</a> и сгенерировать сертификат
   lets_encrypt:
     name: Let's Encrypt
     description: Конфигурация для генерации сертификата
     fields:
-      accept_terms:
-        name: Принять условия
-        description: Принять условия для генерации сертификата
       algo:
         name: Алгоритм
         description: Алгоритм для генерации Let's Encrypt сертификата

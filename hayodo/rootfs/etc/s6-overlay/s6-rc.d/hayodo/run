@@ -6,7 +6,6 @@ WORK_DIR=/data/dehydrated
 API_URL="https://api.ayodo.ru/v1"
 
 TOKEN=$(bashio::config 'token')
-LOCAL_HOST=$(bashio::config 'local_host')
 LOCAL_PORT=$(bashio::config 'local_port')
 EMAIL=$(bashio::config 'email')
 
@@ -19,9 +18,9 @@ KEY_DIR="/config/.ssh"
 KEY_PATH="$KEY_DIR/$KEY_NAME"
 
 if [[ -f "$KEY_PATH" && -f "$KEY_PATH.pub" ]]; then
-    echo " Ⓐ SSH keys already exists"
+    echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] SSH keys already exists"
 else
-  echo " Ⓐ Generating SSH key pair..."
+  echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Generating SSH key pair..."
   if [[ -d $KEY_DIR ]]; then
       rm -rf $KEY_DIR
   fi
@@ -29,9 +28,9 @@ else
   mkdir $KEY_DIR
   ssh-keygen -t "$KEY_TYPE" -b "$KEY_LENGTH" -f "$KEY_PATH" -C "$KEY_COMMENT" -N ""
   if [ $? -eq 0 ]; then
-      echo " Ⓐ SSH key pair generated successfully:"
+      echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] SSH key pair generated successfully:"
   else
-      echo " Ⓐ Error generating SSH key pair."
+      echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Error generating SSH key pair."
       exit 1
   fi
 fi
@@ -39,33 +38,32 @@ fi
 PUBLIC_KEY=$(<"$KEY_PATH.pub")
 
 echo " Ⓐ Request to Ayodo API..."
-if ! response=$(curl -X POST\
+if ! Response=$(curl -X POST\
     -L "$API_URL/connect/home" \
     -H "Content-Type: application/json" \
     -H "Accept: application/json" \
     -d "{\"token\":\"${TOKEN}\", \"public_key\":\"${PUBLIC_KEY}\"}");
 then
-    bashio::log.fatal "Something went wrong contacting the API. Response: {$response}"
+    bashio::log.fatal "Something went wrong contacting the API. Response: {$Response}"
     return "${__BASHIO_EXIT_NOK}"
 fi
 
-if (bashio::jq.exists "${response}" ".code") && (bashio::jq "${response}" ".code" != 200); then
-    bashio::log.fatal "Something went wrong contacting the API. Response: {$response}"
+if (bashio::jq.exists "${Response}" ".code") && (bashio::jq "${Response}" ".code" != 200); then
+    bashio::log.fatal "Something went wrong contacting the API. Response: {$Response}"
     return "${__BASHIO_EXIT_NOK}"
 fi
 
-# Get data from response
-USER=$(bashio::jq "${response}" ".ssh_user")
-HOST=$(bashio::jq "${response}" ".ssh_host")
-TUNNEL_PORT=$(bashio::jq "${response}" ".tunnel_port")
-SSH_PORT=$(bashio::jq "${response}" ".ssh_port")
-DOMAIN=$(bashio::jq "${response}" ".domain")
+# Get data from Response
+USER=$(bashio::jq "${Response}" ".ssh_user")
+HOST=$(bashio::jq "${Response}" ".ssh_host")
+TUNNEL_PORT=$(bashio::jq "${Response}" ".tunnel_port")
+SSH_PORT=$(bashio::jq "${Response}" ".ssh_port")
+DOMAIN=$(bashio::jq "${Response}" ".domain")
 
 if [[ "$USER" == "null" || "$HOST" == "null" || "$TUNNEL_PORT" == "null" || "$SSH_PORT" == "null" || "$DOMAIN" == "null" ]] ; then
-    bashio::log.fatal "Something went wrong contacting the API. Response: {$response}"
+    bashio::log.fatal "Something went wrong contacting the API. Response: {$Response}"
     return "${__BASHIO_EXIT_NOK}"
 fi
-
 echo " Ⓐ Got data from API."
 
 # Init folder structs
@@ -83,11 +81,9 @@ if bashio::config.true "lets_encrypt.accept_terms"; then
   . /root/renew_certs.sh
   renew_certs "${CERT_DIR}" "${WORK_DIR}"
 
-  echo " Ⓐ Add cron task for renew"
+  echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Add cron task for renew"
   echo "0 3 * * * run-parts /etc/periodic/daily >> /data/last_run.log 2>&1" > /etc/crontabs/root
 fi
-echo " Ⓐ Cron tasks:"
-crontab -l
 
 echo " Ⓐ Create tunnel..."
 
@@ -98,6 +94,6 @@ autossh -M 20000 -fN -p "${SSH_PORT}" -R "${TUNNEL_PORT}":"localhost":"${LOCAL_P
  -o "PasswordAuthentication=no" \
  -o "StrictHostKeyChecking=no"
 
-echo " Ⓐ Tunnel successfully created."
-echo " Ⓐ Start UI"
+echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Tunnel successfully created."
+echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Start UI"
 python3 /root/webui.py

@@ -54,8 +54,8 @@ if (bashio::jq.exists "${Response}" ".code") && (bashio::jq "${Response}" ".code
 fi
 
 # Get data from Response
-USER=$(bashio::jq "${Response}" ".ssh_user")
-HOST=$(bashio::jq "${Response}" ".ssh_host")
+USER=$(bashio::jq "${Response}" ".tunnel_user")
+HOST=$(bashio::jq "${Response}" ".tunnel_host")
 TUNNEL_PORT=$(bashio::jq "${Response}" ".tunnel_port")
 SSH_PORT=$(bashio::jq "${Response}" ".ssh_port")
 DOMAIN=$(bashio::jq "${Response}" ".domain")

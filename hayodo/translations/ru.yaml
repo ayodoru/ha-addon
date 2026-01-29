@@ -1,16 +1,16 @@
 configuration:
   token:
     name: Токен
-    description: Токен из личного кабинета Ayodo.ru
+    description: Токен из личного кабинета ayodo.ru
+  email:
+    name: Email
+    description: Email пользователя ayodo.ru
   local_host:
     name: HomeAssistant host
     description: Локальный хост или IP HomeAssistant (по умолчанию homeassistant)
   local_port:
     name: HomeAssistant port
     description: Локальный порт HomeAssistant port (по умолчанию 8123)
-  email:
-    name: Email
-    description: Email для генерации ssh ключей (необязательный)
   accept_terms:
     name: сгенерировать сертификат Let's Encrypt
     description: Принять <a href="https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf" target="_blank">условия Let's Encrypt</a> и сгенерировать сертификат

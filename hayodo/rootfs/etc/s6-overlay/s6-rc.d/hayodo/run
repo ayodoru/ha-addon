@@ -42,7 +42,7 @@ if ! Response=$(curl -X POST\
     -L "$API_URL/connect/home" \
     -H "Content-Type: application/json" \
     -H "Accept: application/json" \
-    -d "{\"token\":\"${TOKEN}\", \"public_key\":\"${PUBLIC_KEY}\"}");
+    -d "{\"token\":\"${TOKEN}\", \"email\":\"${EMAIL}\", \"public_key\":\"${PUBLIC_KEY}\"}");
 then
     bashio::log.fatal "Something went wrong contacting the API. Response: {$Response}"
     return "${__BASHIO_EXIT_NOK}"
@@ -71,7 +71,7 @@ mkdir -p "${CERT_DIR}"
 mkdir -p "${WORK_DIR}"
 echo "$DOMAIN" > "${WORK_DIR}/domains.txt"
 
-if bashio::config.true "lets_encrypt.accept_terms"; then
+if bashio::config.true "accept_terms"; then
   # Clean up possible stale lock file
   if [ -e "${WORK_DIR}/lock" ]; then
       rm -f "${WORK_DIR}/lock"

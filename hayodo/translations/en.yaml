@@ -2,15 +2,15 @@ configuration:
   token:
     name: Token
     description: Token from your Ayodo.ru profile
+  email:
+    name: Email
+    description: User email from ayodo.ru
   local_host:
     name: HomeAssistant host
     description: Local HomeAssistant host (default homeassistant)
   local_port:
     name: HomeAssistant port
     description: Local HomeAssistant port (default 8123)
-  email:
-    name: Email
-    description: Your email for ssh key generating
   accept_terms:
     name: generate sertificate Let's Encrypt
     description: Accept <a href="https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf" target="_blank">terms Let's Encrypt</a> and generate sertificate

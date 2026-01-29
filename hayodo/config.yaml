@@ -1,5 +1,5 @@
 name: Ayodo add-on
-version: "0.0.6"
+version: "0.0.7"
 slug: hayodo
 description: Ayodo tunnel
 url: "https://ayodo.ru"
@@ -22,19 +22,19 @@ map:
 
 options:
   token: ""
+  email: ""
+  accept_terms: false
   lets_encrypt:
-    accept_terms: false
     algo: secp384r1
     certfile: fullchain.pem
     keyfile: privkey.pem
     renew_days: 30
   local_host: "homeassistant"
   local_port: 8123
-  email: ""
 schema:
   token: str
-  accept_terms: bool
   email: str
+  accept_terms: bool
   lets_encrypt:
     algo: list(rsa|prime256v1|secp384r1)
     certfile: str

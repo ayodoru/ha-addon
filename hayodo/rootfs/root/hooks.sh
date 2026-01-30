@@ -83,11 +83,11 @@ deploy_cert() {
 
     echo " Ⓐ $(date +'%d-%m-%Y %H:%M:%S') Deploying certificate for $DOMAIN"
 
-    mkdir -p "/ssl/$DOMAIN"
+    mkdir -p "/ssl"
     chmod 755 "/ssl"
 
-    cp -f "$FULLCHAINFILE" "/ssl/$DOMAIN/$SYS_CERTFILE"
-    cp -f "$KEYFILE" "/ssl/$DOMAIN/$SYS_KEYFILE"
+    cp -f "$FULLCHAINFILE" "/ssl/$SYS_CERTFILE"
+    cp -f "$KEYFILE" "/ssl/$SYS_KEYFILE"
 
     echo " Ⓐ $(date +'%d-%m-%Y %H:%M:%S') Certificate for $DOMAIN deployed!"
 }

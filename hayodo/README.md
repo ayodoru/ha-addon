@@ -3,7 +3,7 @@
 Аддон позволяет создать защищенный туннель к вашему Home Assistant с использованием SSL-сертификата сгенерированном прямо на вашем сервере HA.
 Для работы аддона необходимо зарегестрироваться в сервисе Ayodo, создать там дом и получить токен подключения.
 
-Подробно об установке аддона можно прочитать в [Документации](https://github.com/ayodoru/ha-addon/blob/master/DOCS.md)
+Подробно об установке аддона можно прочитать в [Документации](https://github.com/ayodoru/ha-addon/blob/master/hayodo/DOCS.md)
 
 [![Установить аддон в Home Assistant.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fayodoru%2Fha-addon)
 

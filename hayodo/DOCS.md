@@ -6,10 +6,11 @@
 
 ## Установка
 
-Нажмите кнопку и добавьте репозиторий в ваш Home Assistant
+Нажмите кнопку и добавьте репозиторий установите аддон в ваш Home Assistant
+
 [![Установить аддон в Home Assistant.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fayodoru%2Fha-addon)
 
-Или добавьте репозиторий вручную:
+Добавление репозитория вручную:
 1. Перейдите в раздел Supervisor > Add-ons в вашем Home Assistant.
 2. Нажмите кнопку "Добавить репозиторий" (три точки в правом верхнем углу).
 3. Вставьте URL репозитория: `https://github.com/ayodo/hayodo`

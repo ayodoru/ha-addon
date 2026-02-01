@@ -97,8 +97,8 @@ autossh -M 20000 -fN -p "${SSH_PORT}" -R "${TUNNEL_PORT}":"localhost":"${LOCAL_P
 echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Tunnel successfully created."
 echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Start UI"
 
-echo " Ⓐ Установка завершена!"
-echo " Ⓐ После настройки вашего конфигурации ваш Home Assistant будет доступен по адресу:"
-echo "https://${DOMAIN}"
+echo " Ⓐ Установка успешно завершена!"
+echo " Ⓐ После настройки конфигурации Home Assistant будет доступен по адресу:"
+echo " Ⓐ https://${DOMAIN}"
 
 python3 /root/webui.py

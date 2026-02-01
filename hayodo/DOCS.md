@@ -27,7 +27,7 @@
 
  ![img.png](./assets/add-repo-menu.png)
 
-4. В поле `Добавить` вставьте URL репозитория: `https://github.com/ayodo/hayodo`
+4. В поле `Добавить` вставьте URL репозитория: `https://github.com/ayodo/ha-addon`
 
 ![img.png](./assets/add-repo-button.png)
 

@@ -66,13 +66,13 @@ function cert_is_valid() {
 
   SYS_CERTFILE=$(bashio::config 'lets_encrypt.certfile')
 
-  if [ ! -d "/ssl" ] || [ ! -d "/ssl/${DOMAIN}" ] || [ -z "$( ls -A "/ssl/${DOMAIN}" )" ]; then
+  if [ ! -d "/ssl" ] || [ -z "$( ls -A "/ssl" )" ]; then
     echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Cert is not exist"
     #return false
     return 1
   fi
 
-  cert="/ssl/${DOMAIN}/${SYS_CERTFILE}"
+  cert="/ssl/${SYS_CERTFILE}"
   if [ -e "${cert}" ] && (openssl x509 -checkend $((RENEW_DAYS * 86400)) -noout -in "${cert}" 2>&1 | grep -q "will not expire"); then
     valid="$(openssl x509 -enddate -noout -in "${cert}" | cut -d= -f2- )"
     echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Certificate for ${DOMAIN} valid longer than ${RENEW_DAYS} days. "

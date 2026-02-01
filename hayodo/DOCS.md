@@ -13,17 +13,21 @@
 Для добавленя репозитория:
 
 1. Нажмите на кнопку и перейдите в ваш Home Assistant по локальному адресу.
+
 [![Установить аддон в Home Assistant.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fayodoru%2Fha-addon)
 2. Далее нажмите `+ Добавить`
-![img.png](../assets/add-repo-button.png)
 
-Если не получается автоматически, то добавьте репозиторай вручную:
+![img.png](./assets/add-repo-button.png)
+
+Если не получается автоматически через кнопку, то добавьте репозиторай вручную:
 1. Перейдите в раздел  Settings > Add-ons (Настройки > Дополнения) в вашем Home Assistant.
 2. Нажмите на кнопку в правом нижнем углу Add-on store (Магазин дополнений) 
 3. Нажмите на три точки и там на Репозитории
- ![img.png](../assets/add-repo-menu.png)
+
+ ![img.png](./assets/add-repo-menu.png)
 4. В поле `Добавить` вставьте URL репозитория: `https://github.com/ayodo/hayodo`
-![img.png](../assets/add-repo-button.png)
+
+![img.png](./assets/add-repo-button.png)
 5. Нажмите на кнопку `+ Добавить`
 
 ### Установка аддона

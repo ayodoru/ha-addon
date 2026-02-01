@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime, timezone
 
@@ -19,29 +20,28 @@ def load_cert_info():
     if not os.path.isdir(path):
         return results
 
-    for domain in os.listdir(path):
-        full_path = os.path.join(path, domain, "fullchain.pem")
-        if not os.path.isfile(full_path):
-            continue
 
-        try:
-            pem_data = open(full_path, "rb").read()
-            cert = x509.load_pem_x509_certificate(pem_data, default_backend())
+    full_path = os.path.join(path, "fullchain.pem")
 
-            start = cert.not_valid_before_utc
-            end = cert.not_valid_after_utc
-            days_left = (end - datetime.now(timezone.utc)).days
+    try:
+        pem_data = open(full_path, "rb").read()
+        cert = x509.load_pem_x509_certificate(pem_data, default_backend())
 
-            results.append({
-                "domain": domain,
-                "start": start.strftime("%Y-%m-%d %H:%M:%S"),
-                "end": end.strftime("%Y-%m-%d %H:%M:%S"),
-                "days": days_left
-            })
+        start = cert.not_valid_before_utc
+        end = cert.not_valid_after_utc
+        days_left = (end - datetime.now(timezone.utc)).days
 
-        except Exception as e:
-            # todo: work with error
-            continue
+        results.append({
+            "domain": cert.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[0].value,
+            "start": start.strftime("%Y-%m-%d %H:%M:%S"),
+            "end": end.strftime("%Y-%m-%d %H:%M:%S"),
+            "days": days_left
+        })
+
+    except Exception as e:
+        logging.exception(e)
+        # todo: work with error
+        pass
 
     return results
 

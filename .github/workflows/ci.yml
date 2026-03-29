@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install validators
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          python -m pip install --upgrade pip yamllint
+
+      - name: Validate YAML
+        run: |
+          yamllint repository.yaml hayodo/config.yaml hayodo/build.yaml
+
+      - name: Lint shell scripts
+        run: |
+          shellcheck \
+            hayodo/rootfs/root/*.sh \
+            hayodo/rootfs/etc/periodic/daily/check_certificate_renewal
+
+  build-check:
+    name: Build check (${{ matrix.arch }})
+    needs: validate
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: aarch64
+            platform: linux/arm64
+            build_from: ghcr.io/home-assistant/aarch64-base:3.22
+          - arch: amd64
+            platform: linux/amd64
+            build_from: ghcr.io/home-assistant/amd64-base:3.22
+          - arch: armhf
+            platform: linux/arm/v6
+            build_from: ghcr.io/home-assistant/armhf-base:3.22
+          - arch: armv7
+            platform: linux/arm/v7
+            build_from: ghcr.io/home-assistant/armv7-base:3.22
+          - arch: i386
+            platform: linux/386
+            build_from: ghcr.io/home-assistant/i386-base:3.22
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build only
+        uses: docker/build-push-action@v6
+        with:
+          context: ./hayodo
+          file: ./hayodo/Dockerfile
+          platforms: ${{ matrix.platform }}
+          push: false
+          build-args: |
+            BUILD_FROM=${{ matrix.build_from }}
+            DEHYDRATED_VERSION=v0.7.2
+          cache-from: type=gha,scope=ci-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=ci-${{ matrix.arch }}

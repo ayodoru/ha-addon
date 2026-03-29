@@ -1,0 +1,133 @@
+name: Publish to GHCR
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Docker tag to publish manually, for example v0.0.12 or test"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/hayodo
+
+jobs:
+  prepare:
+    name: Resolve tags
+    runs-on: ubuntu-latest
+    outputs:
+      tag_base: ${{ steps.vars.outputs.tag_base }}
+      publish_latest: ${{ steps.vars.outputs.publish_latest }}
+
+    steps:
+      - name: Resolve target tag
+        id: vars
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "tag_base=${{ github.event.inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+            echo "publish_latest=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag_base=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "publish_latest=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-per-arch:
+    name: Build and push (${{ matrix.arch }})
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: aarch64
+            platform: linux/arm64
+            build_from: ghcr.io/home-assistant/aarch64-base:3.22
+          - arch: amd64
+            platform: linux/amd64
+            build_from: ghcr.io/home-assistant/amd64-base:3.22
+          - arch: armhf
+            platform: linux/arm/v6
+            build_from: ghcr.io/home-assistant/armhf-base:3.22
+          - arch: armv7
+            platform: linux/arm/v7
+            build_from: ghcr.io/home-assistant/armv7-base:3.22
+          - arch: i386
+            platform: linux/386
+            build_from: ghcr.io/home-assistant/i386-base:3.22
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push arch image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./hayodo
+          file: ./hayodo/Dockerfile
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }}-${{ matrix.arch }}
+            ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}-${{ matrix.arch }}
+          build-args: |
+            BUILD_FROM=${{ matrix.build_from }}
+            DEHYDRATED_VERSION=v0.7.2
+          cache-from: type=gha,scope=publish-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=publish-${{ matrix.arch }}
+
+  publish-manifest:
+    name: Publish multi-arch tags
+    needs:
+      - prepare
+      - build-per-arch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-arch manifest
+        shell: bash
+        run: |
+          docker buildx imagetools create \
+            -t ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }} \
+            -t ${{ env.IMAGE_NAME }}:sha-${{ github.sha }} \
+            ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }}-aarch64 \
+            ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }}-amd64 \
+            ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }}-armhf \
+            ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }}-armv7 \
+            ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }}-i386
+
+      - name: Publish latest for release tags
+        if: needs.prepare.outputs.publish_latest == 'true'
+        shell: bash
+        run: |
+          docker buildx imagetools create \
+            -t ${{ env.IMAGE_NAME }}:latest \
+            ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }}

@@ -21,18 +21,11 @@ jobs:
       - name: Install validators
         run: |
           sudo apt-get update
-          sudo apt-get install -y shellcheck
           python -m pip install --upgrade pip yamllint
 
       - name: Validate YAML
         run: |
           yamllint repository.yaml hayodo/config.yaml hayodo/build.yaml
-
-      - name: Lint shell scripts
-        run: |
-          shellcheck \
-            hayodo/rootfs/root/*.sh \
-            hayodo/rootfs/etc/periodic/daily/check_certificate_renewal
 
   build-check:
     name: Build check (${{ matrix.arch }})

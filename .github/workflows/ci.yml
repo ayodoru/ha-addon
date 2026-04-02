@@ -25,7 +25,7 @@ jobs:
 
       - name: Validate YAML
         run: |
-          yamllint repository.yaml hayodo/config.yaml hayodo/build.yaml hayodo/translations/en.yaml hayodo/translations/ru.yaml hayodo-prebuilt/config.yaml hayodo-prebuilt/translations/en.yaml hayodo-prebuilt/translations/ru.yaml
+          yamllint repository.yaml hayodo/config.yaml hayodo/translations/en.yaml hayodo/translations/ru.yaml hayodo-canary/config.yaml hayodo-canary/build.yaml hayodo-canary/translations/en.yaml hayodo-canary/translations/ru.yaml
 
   build-check:
     name: Build check (${{ matrix.arch }})
@@ -65,8 +65,8 @@ jobs:
       - name: Build only
         uses: docker/build-push-action@v7
         with:
-          context: ./hayodo
-          file: ./hayodo/Dockerfile
+          context: ./hayodo-canary
+          file: ./hayodo-canary/Dockerfile
           platforms: ${{ matrix.platform }}
           push: false
           build-args: |

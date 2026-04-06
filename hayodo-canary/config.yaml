@@ -24,6 +24,7 @@ map:
 options:
   token: ""
   email: ""
+  external_domain: ""
   accept_terms: false
   lets_encrypt:
     algo: secp384r1
@@ -35,6 +36,7 @@ options:
 schema:
   token: str
   email: str
+  external_domain: str
   accept_terms: bool
   lets_encrypt:
     algo: list(rsa|prime256v1|secp384r1)

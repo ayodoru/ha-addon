@@ -6,6 +6,9 @@ configuration:
   email:
     name: Email
     description: User email from ayodo.ru
+  external_domain:
+    name: External domain
+    description: Custom external domain (added as a synonym)
   local_host:
     name: HomeAssistant host
     description: >-

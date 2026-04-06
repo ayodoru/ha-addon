@@ -1,6 +1,6 @@
 ---
 name: Ayodo add-on (prebuilt)
-version: "0.1.0"
+version: "0.2.0"
 slug: hayodo_prebuilt
 description: Ayodo tunnel using prebuilt GHCR image
 url: "https://ayodo.ru"
@@ -25,6 +25,7 @@ map:
 options:
   token: ""
   email: ""
+  external_domain: ""
   accept_terms: false
   lets_encrypt:
     algo: secp384r1
@@ -36,6 +37,7 @@ options:
 schema:
   token: str
   email: str
+  external_domain: str
   accept_terms: bool
   lets_encrypt:
     algo: list(rsa|prime256v1|secp384r1)

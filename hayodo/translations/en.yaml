@@ -6,6 +6,9 @@ configuration:
   email:
     name: Email
     description: User email from ayodo.ru
+  external_domain:
+    name: External domain
+    description: Custom external domain (added as a synonym)
   local_host:
     name: HomeAssistant host
     description: >-
@@ -15,7 +18,7 @@ configuration:
     description: Local HomeAssistant port (default 8123)
   accept_terms:
     name: generate sertificate Let's Encrypt
-    description: Accept Let's Encrypt terms and generate sertificate
+    description: Accept terms Let's Encrypt and generate sertificate - https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf
   lets_encrypt:
     name: Let's Encrypt
     description: Let's Encrypt configuration

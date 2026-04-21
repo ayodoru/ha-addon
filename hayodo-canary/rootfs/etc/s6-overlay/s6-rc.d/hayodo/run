@@ -8,6 +8,7 @@ API_URL="https://api.ayodo.ru/v1"
 TOKEN=$(bashio::config 'token')
 LOCAL_PORT=$(bashio::config 'local_port')
 EMAIL=$(bashio::config 'email')
+EXTERNAL_DOMAIN=$(bashio::config 'external_domain')
 
 # Define key parameters
 KEY_TYPE="rsa"
@@ -37,12 +38,17 @@ fi
 
 PUBLIC_KEY=$(<"$KEY_PATH.pub")
 
+if [[ "${EXTERNAL_DOMAIN}" == "null" ]]; then
+  EXTERNAL_DOMAIN=""
+fi
+EXTERNAL_DOMAIN="$(echo "${EXTERNAL_DOMAIN}" | tr '[:upper:]' '[:lower:]' | xargs)"
+
 echo " Ⓐ Request to Ayodo API..."
 if ! Response=$(curl -X POST\
     -L "$API_URL/connect/home" \
     -H "Content-Type: application/json" \
     -H "Accept: application/json" \
-    -d "{\"token\":\"${TOKEN}\", \"email\":\"${EMAIL}\", \"public_key\":\"${PUBLIC_KEY}\"}");
+    -d "{\"token\":\"${TOKEN}\", \"email\":\"${EMAIL}\", \"public_key\":\"${PUBLIC_KEY}\", \"synonym\":\"${EXTERNAL_DOMAIN}\"}");
 then
     bashio::log.fatal "Something went wrong contacting the API. Response: {$Response}"
     return "${__BASHIO_EXIT_NOK}"
@@ -69,7 +75,12 @@ echo " Ⓐ Got data from API."
 # Init folder structs
 mkdir -p "${CERT_DIR}"
 mkdir -p "${WORK_DIR}"
-echo "$DOMAIN" > "${WORK_DIR}/domains.txt"
+if [[ -n "${EXTERNAL_DOMAIN}" && "${EXTERNAL_DOMAIN}" != "${DOMAIN}" ]]; then
+  echo "${DOMAIN} ${EXTERNAL_DOMAIN}" > "${WORK_DIR}/domains.txt"
+  echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] External domain alias enabled: ${EXTERNAL_DOMAIN}"
+else
+  echo "${DOMAIN}" > "${WORK_DIR}/domains.txt"
+fi
 
 if bashio::config.true "accept_terms"; then
   # Clean up possible stale lock file
@@ -100,5 +111,8 @@ echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Start UI"
 echo " Ⓐ Установка успешно завершена!"
 echo " Ⓐ После настройки конфигурации Home Assistant будет доступен по адресу:"
 echo " Ⓐ https://${DOMAIN}"
+if [[ -n "${EXTERNAL_DOMAIN}" && "${EXTERNAL_DOMAIN}" != "${DOMAIN}" ]]; then
+  echo " Ⓐ Также через внешний домен: https://${EXTERNAL_DOMAIN}"
+fi
 
 python3 /root/webui.py

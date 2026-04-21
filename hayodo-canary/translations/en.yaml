@@ -17,8 +17,8 @@ configuration:
     name: HomeAssistant port
     description: Local HomeAssistant port (default 8123)
   accept_terms:
-    name: generate sertificate Let's Encrypt
-    description: Accept Let's Encrypt terms and generate sertificate
+    name: generate certificate Let's Encrypt
+    description: Accept Let's Encrypt terms and generate certificate
   lets_encrypt:
     name: Let's Encrypt
     description: Let's Encrypt configuration

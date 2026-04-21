@@ -18,7 +18,7 @@ configuration:
     description: Локальный порт HomeAssistant port (по умолчанию 8123)
   accept_terms:
     name: сгенерировать сертификат Let's Encrypt
-    description: Принять условия Let's Encrypt и сгенерировать сертификат - https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf
+    description: Принять условия Let's Encrypt и сгенерировать сертификат
   lets_encrypt:
     name: Let's Encrypt
     description: Конфигурация для генерации сертификата

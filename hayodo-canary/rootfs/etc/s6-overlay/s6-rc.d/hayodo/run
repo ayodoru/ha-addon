@@ -65,6 +65,7 @@ HOST=$(bashio::jq "${Response}" ".tunnel_host")
 TUNNEL_PORT=$(bashio::jq "${Response}" ".tunnel_port")
 SSH_PORT=$(bashio::jq "${Response}" ".ssh_port")
 DOMAIN=$(bashio::jq "${Response}" ".domain")
+SYNONYM=$(bashio::jq "${Response}" ".synonym")
 
 if [[ "$USER" == "null" || "$HOST" == "null" || "$TUNNEL_PORT" == "null" || "$SSH_PORT" == "null" || "$DOMAIN" == "null" ]] ; then
     bashio::log.fatal "Something went wrong contacting the API. Response: {$Response}"
@@ -75,9 +76,9 @@ echo " Ⓐ Got data from API."
 # Init folder structs
 mkdir -p "${CERT_DIR}"
 mkdir -p "${WORK_DIR}"
-if [[ -n "${EXTERNAL_DOMAIN}" && "${EXTERNAL_DOMAIN}" != "${DOMAIN}" ]]; then
-  echo "${DOMAIN} ${EXTERNAL_DOMAIN}" > "${WORK_DIR}/domains.txt"
-  echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] External domain alias enabled: ${EXTERNAL_DOMAIN}"
+if [[ -n "${SYNONYM}" && "${SYNONYM}" != "${DOMAIN}" ]]; then
+  echo "${DOMAIN} ${SYNONYM}" > "${WORK_DIR}/domains.txt"
+  echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] External domain synonym enabled: ${SYNONYM}"
 else
   echo "${DOMAIN}" > "${WORK_DIR}/domains.txt"
 fi
@@ -99,7 +100,7 @@ fi
 echo " Ⓐ Create tunnel..."
 
 autossh -M 20000 -fN -p "${SSH_PORT}" -R "${TUNNEL_PORT}":"localhost":"${LOCAL_PORT}" "${USER}"@"${HOST}" -i $KEY_PATH \
- -o "ServerAliveInterval=60" \
+ -o "ServerAliveInterval=10" \
  -o "ServerAliveCountMax=3" \
  -o "PubkeyAuthentication=yes" \
  -o "PasswordAuthentication=no" \
@@ -111,8 +112,8 @@ echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Start UI"
 echo " Ⓐ Установка успешно завершена!"
 echo " Ⓐ После настройки конфигурации Home Assistant будет доступен по адресу:"
 echo " Ⓐ https://${DOMAIN}"
-if [[ -n "${EXTERNAL_DOMAIN}" && "${EXTERNAL_DOMAIN}" != "${DOMAIN}" ]]; then
-  echo " Ⓐ Также через внешний домен: https://${EXTERNAL_DOMAIN}"
+if [[ -n "${SYNONYM}" && "${SYNONYM}" != "${DOMAIN}" ]]; then
+  echo " Ⓐ Также через внешний домен: https://${SYNONYM}"
 fi
 
 python3 /root/webui.py

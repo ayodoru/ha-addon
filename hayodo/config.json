@@ -1,0 +1,57 @@
+{
+  "name": "Ayodo add-on",
+  "version": "0.3.7",
+  "slug": "hayodo",
+  "description": "Внешний доступ к Home Assistant",
+  "url": "https://ayodo.ru",
+  "image": "ghcr.io/ayodoru/hayodo:latest-{arch}",
+  "startup": "services",
+  "boot": "auto",
+  "host_network": true,
+  "init": false,
+  "stage": "stable",
+  "arch": [
+    "armhf",
+    "armv7",
+    "aarch64",
+    "amd64",
+    "i386"
+  ],
+  "map": [
+    "addon_config:rw",
+    "ssl:rw",
+    "share:rw"
+  ],
+  "options": {
+    "token": "",
+    "email": "",
+    "external_domain": "",
+    "accept_terms": false,
+    "lets_encrypt": {
+      "algo": "secp384r1",
+      "certfile": "fullchain.pem",
+      "keyfile": "privkey.pem",
+      "renew_days": 30
+    },
+    "local_host": "homeassistant",
+    "local_port": 8123
+  },
+  "schema": {
+    "token": "str",
+    "email": "str",
+    "external_domain": "str",
+    "accept_terms": "bool",
+    "lets_encrypt": {
+      "algo": "list(rsa|prime256v1|secp384r1)",
+      "certfile": "str",
+      "keyfile": "str",
+      "renew_days": "int"
+    },
+    "local_host": "str",
+    "local_port": "int"
+  },
+  "ingress": true,
+  "panel_icon": "mdi:certificate",
+  "panel_title": "Certificates",
+  "panel_admin": true
+}

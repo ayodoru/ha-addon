@@ -25,7 +25,7 @@ jobs:
 
       - name: Validate YAML
         run: |
-          yamllint repository.yaml hayodo/config.yaml hayodo/translations/en.yaml hayodo/translations/ru.yaml hayodo-canary/config.yaml hayodo-canary/build.yaml hayodo-canary/translations/en.yaml hayodo-canary/translations/ru.yaml
+          yamllint repository.yaml hayodo/translations/en.yaml hayodo/translations/ru.yaml hayodo-canary/config.yaml hayodo-canary/build.yaml hayodo-canary/translations/en.yaml hayodo-canary/translations/ru.yaml
 
   build-check:
     name: Build check (${{ matrix.arch }})

@@ -5,7 +5,7 @@
 
 Подробно об установке аддона можно прочитать в [Документации](DOCS.md)
 
-[![Установить аддон в Home Assistant](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?repository_url=https%3A%2F%2Fgithub.com%2Fayodoru%2Fha-addon)
+[![Установить аддон в Home Assistant](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?repository_url=https%3A%2F%2Fgithub.com%2Fayodoru%2Fha-addon&addon=56e02f95_hayodo)
 
 ![Supports aarch64 Architecture][aarch64-shield]
 ![Supports amd64 Architecture][amd64-shield]

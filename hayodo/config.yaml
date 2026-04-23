@@ -1,15 +1,16 @@
 ---
 name: Ayodo add-on
-version: "0.3.4"
+version: "0.3.5"
 slug: hayodo
 description: Ayodo tunnel using prebuilt GHCR image
 url: "https://ayodo.ru"
-image: "ghcr.io/ayodoru/hayodo:v0.1.0-{arch}"
+image: "ghcr.io/ayodoru/hayodo:v0.3.5-{arch}"
 
 startup: services
 boot: auto
 host_network: true
 init: false
+stage: stable
 
 arch:
   - armhf

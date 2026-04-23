@@ -25,31 +25,40 @@ parse_domains_txt() {
       (grep -vE '^(#|$)' || true)
 }
 
+primary_domain() {
+  parse_domains_txt | head -n 1 | awk '{print $1}'
+}
+
 # Function that performs a renew
 function renew_certs() {
   local CERT_DIR="${1}" WORK_DIR="${2}"
-  # shellcheck disable=SC2119
-  for DOMAIN in $(parse_domains_txt); do
-    if [ ! -d "${CERT_DIR}/live" ] && ( ! cert_is_valid "${DOMAIN}" ); then
+  local DOMAIN
+  DOMAIN="$(primary_domain)"
 
-      echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Create dehydrated config..."
-      cp /root/dehydrated.config "${WORK_DIR}/config"
+  if [ -z "${DOMAIN}" ]; then
+    echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] domains.txt is empty, skip renew"
+    return 0
+  fi
 
-      sed -i "s|^CONTACT_EMAIL=.*|CONTACT_EMAIL=\"$EMAIL\"|" "${WORK_DIR}/config"
-      if [ "$STAGING" = true ]; then
-          sed -i 's#https://acme-v02.api.letsencrypt.org/directory#https://acme-staging-v02.api.letsencrypt.org/directory#g' "${WORK_DIR}/config"
-      fi
+  if ! cert_is_valid "${DOMAIN}"; then
 
-      mkdir -p "$WEBROOT/.well-known/acme-challenge"
+    echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Create dehydrated config..."
+    cp /root/dehydrated.config "${WORK_DIR}/config"
 
-      echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Register in Let's Encrypt"
-      dehydrated --register --accept-terms --config "${WORK_DIR}/config"
-      # shellcheck disable=SC1091
-      # Do the certificate renewals
-      echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Renew certificate for ${DOMAIN}"
-      lets_encrypt_renew "$CERT_DIR" "$WORK_DIR"
+    sed -i "s|^CONTACT_EMAIL=.*|CONTACT_EMAIL=\"$EMAIL\"|" "${WORK_DIR}/config"
+    if [ "$STAGING" = true ]; then
+      sed -i 's#https://acme-v02.api.letsencrypt.org/directory#https://acme-staging-v02.api.letsencrypt.org/directory#g' "${WORK_DIR}/config"
     fi
-  done
+
+    mkdir -p "$WEBROOT/.well-known/acme-challenge"
+
+    echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Register in Let's Encrypt"
+    dehydrated --register --accept-terms --config "${WORK_DIR}/config"
+    # shellcheck disable=SC1091
+    # Issue one certificate using one line from domains.txt (CN + SAN aliases)
+    echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Renew certificate for ${DOMAIN}"
+    lets_encrypt_renew "$CERT_DIR" "$WORK_DIR"
+  fi
 
 }
 
@@ -85,4 +94,3 @@ function cert_is_valid() {
   #return false
   return 1
 }
-

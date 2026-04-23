@@ -1,5 +1,6 @@
 import logging
 import os
+from glob import glob
 from datetime import datetime, timezone
 
 from cryptography import x509
@@ -13,50 +14,60 @@ app = Flask(__name__, template_folder=template_dir)
 # -----------------------------
 # Certificate Parsing (correct)
 # -----------------------------
-def load_cert_info():
-    path = "/ssl"
-    results = []
+def parse_cert_file(full_path):
+    pem_data = open(full_path, "rb").read()
+    cert = x509.load_pem_x509_certificate(pem_data, default_backend())
 
-    if not os.path.isdir(path):
-        return results
+    start = cert.not_valid_before_utc
+    end = cert.not_valid_after_utc
+    days_left = (end - datetime.now(timezone.utc)).days
 
-
-    full_path = os.path.join(path, "fullchain.pem")
+    domains = []
+    common_name = cert.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[0].value
+    if common_name:
+        domains.append(common_name)
 
     try:
-        pem_data = open(full_path, "rb").read()
-        cert = x509.load_pem_x509_certificate(pem_data, default_backend())
-
-        start = cert.not_valid_before_utc
-        end = cert.not_valid_after_utc
-        days_left = (end - datetime.now(timezone.utc)).days
-
-        domains = []
-        common_name = cert.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[0].value
-        if common_name:
-            domains.append(common_name)
-
-        try:
-            san = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
-            for dns_name in san.get_values_for_type(x509.DNSName):
-                if dns_name not in domains:
-                    domains.append(dns_name)
-        except x509.ExtensionNotFound:
-            pass
-
-        results.append({
-            "domain": common_name,
-            "domains": domains,
-            "domains_display": ", ".join(domains),
-            "start": start.strftime("%Y-%m-%d %H:%M:%S"),
-            "end": end.strftime("%Y-%m-%d %H:%M:%S"),
-            "days": days_left
-        })
-
-    except Exception as e:
-        logging.exception(e)
-        # todo: work with error
+        san = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
+        for dns_name in san.get_values_for_type(x509.DNSName):
+            if dns_name not in domains:
+                domains.append(dns_name)
+    except x509.ExtensionNotFound:
         pass
+
+    return {
+        "domain": common_name,
+        "domains": domains,
+        "domains_display": ", ".join(domains),
+        "start": start.strftime("%Y-%m-%d %H:%M:%S"),
+        "end": end.strftime("%Y-%m-%d %H:%M:%S"),
+        "days": days_left
+    }
+
+
+def load_cert_info():
+    results = []
+    cert_paths = []
+    seen = set()
+
+    # Active cert copied for Home Assistant usage
+    ssl_fullchain = "/ssl/fullchain.pem"
+    if os.path.isfile(ssl_fullchain):
+        cert_paths.append(ssl_fullchain)
+
+    # Raw certs issued by dehydrated (covers cases with multiple cert dirs)
+    cert_paths.extend(sorted(glob("/data/letsencrypt/certs/*/fullchain.pem")))
+
+    for cert_path in cert_paths:
+        if cert_path in seen:
+            continue
+        seen.add(cert_path)
+        try:
+            results.append(parse_cert_file(cert_path))
+        except Exception as e:
+            logging.exception(e)
+            # todo: work with error
+            pass
 
     return results
 

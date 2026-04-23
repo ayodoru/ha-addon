@@ -1,6 +1,6 @@
 {
   "name": "Ayodo add-on",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "slug": "hayodo",
   "description": "Внешний доступ к Home Assistant",
   "url": "https://ayodo.ru",

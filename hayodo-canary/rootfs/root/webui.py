@@ -31,8 +31,23 @@ def load_cert_info():
         end = cert.not_valid_after_utc
         days_left = (end - datetime.now(timezone.utc)).days
 
+        domains = []
+        common_name = cert.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[0].value
+        if common_name:
+            domains.append(common_name)
+
+        try:
+            san = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
+            for dns_name in san.get_values_for_type(x509.DNSName):
+                if dns_name not in domains:
+                    domains.append(dns_name)
+        except x509.ExtensionNotFound:
+            pass
+
         results.append({
-            "domain": cert.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[0].value,
+            "domain": common_name,
+            "domains": domains,
+            "domains_display": ", ".join(domains),
             "start": start.strftime("%Y-%m-%d %H:%M:%S"),
             "end": end.strftime("%Y-%m-%d %H:%M:%S"),
             "days": days_left

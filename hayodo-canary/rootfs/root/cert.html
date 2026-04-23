@@ -73,10 +73,10 @@
 <h2>Let's Encrypt Certificates Status</h2>
 
 <table>
-    <tr><th>Domain</th><th>Valid From</th><th>Valid To</th><th>Expiration (days)</th></tr>
+    <tr><th>Domains (CN + SAN)</th><th>Valid From</th><th>Valid To</th><th>Expiration (days)</th></tr>
     {% for item in certs %}
     <tr>
-        <td>{{ item.domain }}</td>
+        <td>{{ item.domains_display }}</td>
         <td>{{ item.start }}</td>
         <td>{{ item.end }}</td>
         <td class="{% if item.days < 30 %}bad{% else %}good{% endif %}">

@@ -1,6 +1,6 @@
 ---
-name: Ayodo add-on (prebuilt)
-version: "0.3.2"
+name: Ayodo add-on
+version: "0.3.3"
 slug: hayodo_prebuilt
 description: Ayodo tunnel using prebuilt GHCR image
 url: "https://ayodo.ru"

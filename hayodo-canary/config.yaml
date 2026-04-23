@@ -1,7 +1,7 @@
 ---
 name: Ayodo add-on (canary)
-version: "0.3.3"
-slug: hayodo
+version: "0.3.4"
+slug: hayodo-canary
 description: Ayodo tunnel
 url: "https://ayodo.ru"
 

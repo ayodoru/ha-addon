@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 import requests
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from flask import Flask, redirect, render_template
+from flask import Flask, jsonify, redirect, render_template, request
 
 template_dir = os.path.dirname(os.path.realpath(__file__))
 app = Flask(__name__, template_folder=template_dir)
@@ -19,6 +19,7 @@ HEALTHCHECK_CONFIG_FILE = "/data/healthcheck_config.json"
 HEALTHCHECK_INTERVAL_SECONDS = 300
 HEALTHCHECK_TIMEOUT_SECONDS = 8
 HEALTHCHECK_PATHS = ["/manifest.json", "/static/icons/favicon.ico"]
+EVENT_PAGE_SIZE = 30
 
 
 # -----------------------------
@@ -192,7 +193,9 @@ def load_tunnel_events(limit=30):
             continue
         try:
             with open(path, "r", encoding="utf-8", errors="replace") as f:
-                lines = f.readlines()[-limit:]
+                lines = f.readlines()
+                if limit is not None:
+                    lines = lines[-limit:]
         except Exception as e:
             logging.exception(e)
             continue
@@ -215,7 +218,7 @@ def load_tunnel_events(limit=30):
             })
 
     events.sort(key=lambda event: event.get("ts") or "", reverse=True)
-    return events[:limit]
+    return events[:limit] if limit is not None else events
 
 
 def load_events(limit=80):
@@ -225,7 +228,9 @@ def load_events(limit=80):
     if os.path.isfile(events_path):
         try:
             with open(events_path, "r", encoding="utf-8") as f:
-                lines = f.readlines()[-limit:]
+                lines = f.readlines()
+                if limit is not None:
+                    lines = lines[-limit:]
             for line in lines:
                 line = line.strip()
                 if not line:
@@ -251,7 +256,9 @@ def load_events(limit=80):
 
     try:
         with open(log_path, "r", encoding="utf-8", errors="replace") as f:
-            lines = f.readlines()[-25:]
+            lines = f.readlines()
+            if limit is not None:
+                lines = lines[-limit:]
         for line in lines:
             clean = line.strip().replace("Ⓐ", "").strip()
             if not clean:
@@ -275,6 +282,19 @@ def load_events(limit=80):
     merged_events = list(reversed(events)) + tunnel_events
     merged_events.sort(key=lambda event: event.get("ts") or "", reverse=True)
     return merged_events
+
+
+def event_page(events, offset=0, limit=EVENT_PAGE_SIZE, date_filter=""):
+    if date_filter:
+        events = [event for event in events if event.get("date") == date_filter]
+
+    page = events[offset:offset + limit]
+    return {
+        "events": page,
+        "has_more": offset + limit < len(events),
+        "next_offset": offset + len(page),
+        "total": len(events),
+    }
 
 
 def parse_event_datetime(raw_ts):
@@ -648,7 +668,8 @@ def index():
     certs = load_cert_info()
     theme = default_theme()
     status = load_access_status()
-    events = load_events()
+    events = load_events(limit=None)
+    initial_events = event_page(events)
     chart = build_event_chart(events)
     access = access_summary(status, events)
     health = build_health_summary(load_healthchecks(), status)
@@ -658,11 +679,31 @@ def index():
         access=access,
         chart=chart,
         certs=certs,
-        events=events,
+        events=initial_events["events"],
+        events_has_more=initial_events["has_more"],
+        events_next_offset=initial_events["next_offset"],
         health=health,
         status=status,
         theme=theme,
     )
+
+
+@app.route("/events")
+def events_api():
+    try:
+        offset = max(0, int(request.args.get("offset", 0)))
+    except ValueError:
+        offset = 0
+
+    try:
+        limit = int(request.args.get("limit", EVENT_PAGE_SIZE))
+    except ValueError:
+        limit = EVENT_PAGE_SIZE
+    limit = min(max(limit, 1), 100)
+
+    date_filter = request.args.get("date", "")
+    page = event_page(load_events(limit=None), offset=offset, limit=limit, date_filter=date_filter)
+    return jsonify(page)
 
 
 @app.route("/cleanup-events", methods=["POST"])

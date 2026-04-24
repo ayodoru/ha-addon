@@ -525,9 +525,21 @@ def build_health_summary(checks, status):
     availability = round(len(successful) / len(checks) * 100) if checks else None
 
     points = []
-    for item in checks:
+    chart_width = 640
+    chart_height = 180
+    padding_x = 34
+    padding_y = 18
+    plot_width = chart_width - padding_x * 2
+    plot_height = chart_height - padding_y * 2
+    point_count = max(len(checks) - 1, 1)
+
+    for index, item in enumerate(checks):
         elapsed = item.get("elapsed_ms")
         height = max(8, round((elapsed or 0) / max_latency * 82)) if item.get("ok") and elapsed is not None else 8
+        x = padding_x + round(index / point_count * plot_width)
+        y = chart_height - padding_y
+        if item.get("ok") and elapsed is not None:
+            y = padding_y + round((max_latency - elapsed) / max_latency * plot_height)
         points.append({
             "ok": item.get("ok", False),
             "height": height,
@@ -535,7 +547,18 @@ def build_health_summary(checks, status):
             "elapsed_ms": elapsed,
             "status_code": item.get("status_code"),
             "error": item.get("error", ""),
+            "x": x,
+            "y": y,
         })
+
+    line_points = " ".join(f"{point['x']},{point['y']}" for point in points if point["ok"] and point["elapsed_ms"] is not None)
+    grid_lines = []
+    y_labels = []
+    for step in range(0, 4):
+        value = round(max_latency / 3 * step)
+        y = chart_height - padding_y - round(plot_height / 3 * step)
+        grid_lines.append({"y": y})
+        y_labels.append({"y": y + 4, "value": value})
 
     return {
         "enabled": config.get("enabled", True),
@@ -543,6 +566,13 @@ def build_health_summary(checks, status):
         "path": latest.get("path", HEALTHCHECK_PATHS[0]) if latest else HEALTHCHECK_PATHS[0],
         "latest": latest,
         "points": points,
+        "line_points": line_points,
+        "grid_lines": grid_lines,
+        "y_labels": y_labels,
+        "chart_width": chart_width,
+        "chart_height": chart_height,
+        "axis_y": chart_height - padding_y,
+        "axis_x": padding_x,
         "availability": availability,
         "avg_ms": round(sum(latencies) / len(latencies)) if latencies else None,
     }

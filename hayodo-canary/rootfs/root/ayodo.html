@@ -106,8 +106,16 @@
             grid-column: span 7;
         }
 
+        .span-6 {
+            grid-column: span 6;
+        }
+
         .span-5 {
             grid-column: span 5;
+        }
+
+        .span-3 {
+            grid-column: span 3;
         }
 
         .span-12 {
@@ -165,7 +173,6 @@
         .access-links {
             display: grid;
             gap: 10px;
-            margin-bottom: 18px;
         }
 
         .access-link-row {
@@ -210,11 +217,22 @@
             text-decoration-thickness: 2px;
         }
 
+        .access-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+            gap: 18px;
+            align-items: start;
+        }
+
+        .access-details {
+            display: grid;
+            gap: 10px;
+        }
+
         .meta-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: 1fr;
             gap: 10px;
-            margin-top: 18px;
         }
 
         .meta {
@@ -238,8 +256,7 @@
 
         .card-footer {
             display: flex;
-            justify-content: flex-end;
-            margin-top: 16px;
+            justify-content: flex-start;
         }
 
         .addon-link {
@@ -367,14 +384,13 @@
         }
 
         .chart-header {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            align-items: flex-start;
+            margin-bottom: 0;
         }
 
         .cleanup-form {
-            flex: 0 0 auto;
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 18px;
         }
 
         .cleanup-button {
@@ -461,42 +477,64 @@
             color: var(--ayodo-text);
         }
 
-        .health-chart {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(10px, 1fr));
-            gap: 5px;
-            align-items: end;
-            min-height: 118px;
-            padding-top: 12px;
-            border-top: 1px solid var(--ayodo-line);
-        }
-
-        .health-point {
-            display: grid;
-            gap: 5px;
-            align-items: end;
-            justify-items: center;
-            min-width: 0;
-        }
-
-        .health-bar {
+        .health-line-chart {
             width: 100%;
-            max-width: 18px;
-            min-height: 8px;
-            border-radius: 4px 4px 0 0;
-            background: var(--ayodo-success);
+            min-height: 180px;
+            margin-top: 10px;
+            border-top: 1px solid var(--ayodo-line);
+            padding-top: 10px;
         }
 
-        .health-bar.down {
-            background: var(--ayodo-danger);
+        .health-line-chart svg {
+            display: block;
+            width: 100%;
+            height: auto;
         }
 
-        .health-time {
-            color: var(--ayodo-muted);
-            font-size: 9px;
-            white-space: nowrap;
-            transform: rotate(-45deg);
-            transform-origin: center;
+        .health-grid-line {
+            stroke: var(--ayodo-line);
+            stroke-width: 1;
+        }
+
+        .health-axis {
+            stroke: var(--ayodo-muted);
+            stroke-width: 1.2;
+        }
+
+        .health-line {
+            fill: none;
+            stroke: var(--ayodo-success);
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 3;
+        }
+
+        .health-dot {
+            fill: var(--ayodo-card);
+            stroke: var(--ayodo-success);
+            stroke-width: 2;
+        }
+
+        .health-dot.down {
+            fill: var(--ayodo-danger);
+            stroke: var(--ayodo-danger);
+        }
+
+        .health-axis-label {
+            fill: var(--ayodo-muted);
+            font-size: 11px;
+        }
+
+        .health-card .health-summary {
+            margin-bottom: 10px;
+        }
+
+        .health-card .health-pill {
+            padding: 5px 7px;
+        }
+
+        .health-card .health-line-chart {
+            min-height: 150px;
         }
 
         .chart {
@@ -656,9 +694,15 @@
             }
 
             .span-7,
+            .span-6,
             .span-5,
+            .span-3,
             .span-12 {
                 grid-column: span 12;
+            }
+
+            .access-layout {
+                grid-template-columns: 1fr;
             }
 
             .access-url {
@@ -683,6 +727,10 @@
         @media (max-width: 560px) {
             .meta-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .health-header {
+                display: grid;
             }
 
             .chart {
@@ -759,69 +807,70 @@
             {% endif %}
         </article>
 
-        <article class="card span-7">
+        <article class="card span-12 access-card">
             <div class="status-row">
                 <h2>Данные доступа</h2>
             </div>
 
-            <div class="access-links">
-                {% if access.primary_url %}
-                    <div class="access-link-row">
-                        <span class="access-link-label">Основной домен</span>
-                        <a class="access-url" href="{{ access.primary_url }}" target="_blank" rel="noreferrer">{{ access.primary_url }}</a>
-                    </div>
-                {% endif %}
-                {% if access.additional_url %}
-                    <div class="access-link-row">
-                        <span class="access-link-label">Дополнительный домен</span>
-                        <a class="access-url" href="{{ access.additional_url }}" target="_blank" rel="noreferrer">{{ access.additional_url }}</a>
-                    </div>
-                {% endif %}
-                {% if not access.primary_url and not access.additional_url %}
-                    <p class="muted">Данные появятся после успешного подключения к Ayodo API.</p>
-                {% endif %}
-            </div>
+            <div class="access-layout">
+                <div class="access-links">
+                    {% if access.primary_url %}
+                        <div class="access-link-row">
+                            <span class="access-link-label">Основной домен</span>
+                            <a class="access-url" href="{{ access.primary_url }}" target="_blank" rel="noreferrer">{{ access.primary_url }}</a>
+                        </div>
+                    {% endif %}
+                    {% if access.additional_url %}
+                        <div class="access-link-row">
+                            <span class="access-link-label">Дополнительный домен</span>
+                            <a class="access-url" href="{{ access.additional_url }}" target="_blank" rel="noreferrer">{{ access.additional_url }}</a>
+                        </div>
+                    {% endif %}
+                    {% if not access.primary_url and not access.additional_url %}
+                        <p class="muted">Данные появятся после успешного подключения к Ayodo API.</p>
+                    {% endif %}
+                </div>
 
-            <div class="meta-grid">
-                <div class="meta">
-                    <span>Локальный Home Assistant</span>
-                    <strong>
-                        {% if access.local_url %}
-                            <a class="meta-link" href="{{ access.local_url }}" target="_blank" rel="noreferrer">{{ access.local_address }}</a>
-                        {% else %}
-                            нет данных
-                        {% endif %}
-                    </strong>
+                <div class="access-details">
+                    <div class="meta-grid">
+                        <div class="meta">
+                            <span>Локальный Home Assistant</span>
+                            <strong>
+                                {% if access.local_url %}
+                                    <a class="meta-link" href="{{ access.local_url }}" target="_blank" rel="noreferrer">{{ access.local_address }}</a>
+                                {% else %}
+                                    нет данных
+                                {% endif %}
+                            </strong>
+                        </div>
+                        <div class="meta">
+                            <span>Последнее обновление статуса</span>
+                            <strong>{{ status.updated_at or "нет данных" }}</strong>
+                        </div>
+                        <div class="meta">
+                            <span>Последнее успешное событие</span>
+                            <strong>
+                                {% if access.last_success %}
+                                    {{ access.last_success.time }} · {{ access.last_success.message }}
+                                {% else %}
+                                    нет данных
+                                {% endif %}
+                            </strong>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a class="addon-link" href="/config/app/56e02f95_hayodo/info?store=true" target="_blank" rel="noreferrer">Открыть аддон</a>
+                    </div>
                 </div>
-                <div class="meta">
-                    <span>Последнее обновление статуса</span>
-                    <strong>{{ status.updated_at or "нет данных" }}</strong>
-                </div>
-                <div class="meta">
-                    <span>Последнее успешное событие</span>
-                    <strong>
-                        {% if access.last_success %}
-                            {{ access.last_success.time }} · {{ access.last_success.message }}
-                        {% else %}
-                            нет данных
-                        {% endif %}
-                    </strong>
-                </div>
-            </div>
-            <div class="card-footer">
-                <a class="addon-link" href="/config/app/56e02f95_hayodo/info?store=true" target="_blank" rel="noreferrer">Открыть аддон</a>
             </div>
         </article>
 
-        <article class="card span-5">
+        <article class="card span-6">
             <div class="chart-header">
                 <div>
                     <h2>События за 14 дней</h2>
                     <p class="muted">Проверки сертификата, подключение и ошибки.</p>
                 </div>
-                <form class="cleanup-form" action="{{ url_for('cleanup_events') }}" method="post">
-                    <button class="cleanup-button" type="submit">Очистить старые</button>
-                </form>
             </div>
             <div class="chart">
                 {% for item in chart %}
@@ -831,36 +880,31 @@
                     </button>
                 {% endfor %}
             </div>
+            <form class="cleanup-form" action="{{ url_for('cleanup_events') }}" method="post">
+                <button class="cleanup-button" type="submit">Очистить данные старше 14 дней</button>
+            </form>
         </article>
 
-        <article class="card span-12">
+        <article class="card span-6 health-card">
             <div class="health-header">
                 <div>
-                    <h2>Доступность Home Assistant</h2>
+                    <h2>Health Check</h2>
                     <p class="muted">
                         {% if health.enabled %}
-                            Health Check включён, статистика собирается каждые 5 минут.
+                            Включён, проверка каждые 5 минут.
                         {% else %}
-                            Health Check выключен, новая статистика не собирается.
+                            Выключен, новая статистика не собирается.
                         {% endif %}
                     </p>
                 </div>
                 <form class="health-toggle-form" action="{{ url_for('toggle_healthcheck') }}" method="post">
                     <button class="health-toggle {% if not health.enabled %}off{% endif %}" type="submit">
-                        {% if health.enabled %}Выключить Health Check{% else %}Включить Health Check{% endif %}
+                        {% if health.enabled %}Выключить{% else %}Включить{% endif %}
                     </button>
                 </form>
             </div>
             {% if health.url %}
                 <div class="health-summary">
-                    <div class="health-pill">
-                        <span>Основной домен</span>
-                        <strong>{{ health.url }}</strong>
-                    </div>
-                    <div class="health-pill">
-                        <span>Проверяется</span>
-                        <strong>{{ health.path }}</strong>
-                    </div>
                     <div class="health-pill">
                         <span>Доступность</span>
                         <strong>{% if health.availability is not none %}{{ health.availability }}%{% else %}нет данных{% endif %}</strong>
@@ -881,13 +925,25 @@
                     </div>
                 </div>
                 {% if health.points %}
-                    <div class="health-chart">
-                        {% for point in health.points %}
-                            <div class="health-point" title="{{ point.label }} · {% if point.ok %}{{ point.elapsed_ms }} мс · HTTP {{ point.status_code }}{% else %}недоступен{% if point.error %}: {{ point.error }}{% endif %}{% endif %}">
-                                <div class="health-bar {% if not point.ok %}down{% endif %}" style="height: {{ point.height }}px"></div>
-                                <span class="health-time">{{ point.label }}</span>
-                            </div>
-                        {% endfor %}
+                    <div class="health-line-chart">
+                        <svg viewBox="0 0 {{ health.chart_width }} {{ health.chart_height }}" role="img" aria-label="График времени ответа Home Assistant">
+                            {% for line in health.grid_lines %}
+                                <line class="health-grid-line" x1="{{ health.axis_x }}" y1="{{ line.y }}" x2="{{ health.chart_width - health.axis_x }}" y2="{{ line.y }}"></line>
+                            {% endfor %}
+                            <line class="health-axis" x1="{{ health.axis_x }}" y1="18" x2="{{ health.axis_x }}" y2="{{ health.axis_y }}"></line>
+                            <line class="health-axis" x1="{{ health.axis_x }}" y1="{{ health.axis_y }}" x2="{{ health.chart_width - health.axis_x }}" y2="{{ health.axis_y }}"></line>
+                            {% for label in health.y_labels %}
+                                <text class="health-axis-label" x="4" y="{{ label.y }}">{{ label.value }}</text>
+                            {% endfor %}
+                            {% if health.line_points %}
+                                <polyline class="health-line" points="{{ health.line_points }}"></polyline>
+                            {% endif %}
+                            {% for point in health.points %}
+                                <circle class="health-dot {% if not point.ok %}down{% endif %}" cx="{{ point.x }}" cy="{{ point.y }}" r="{% if point.ok %}3.5{% else %}4.5{% endif %}">
+                                    <title>{{ point.label }} · {% if point.ok %}{{ point.elapsed_ms }} мс · HTTP {{ point.status_code }}{% else %}недоступен{% if point.error %}: {{ point.error }}{% endif %}{% endif %}</title>
+                                </circle>
+                            {% endfor %}
+                        </svg>
                     </div>
                 {% else %}
                     <p class="empty">Проверки появятся через несколько минут после запуска аддона.</p>

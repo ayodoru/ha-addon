@@ -1,5 +1,5 @@
 name: Ayodo add-on
-version: "0.4.0"
+version: "0.4.1"
 slug: hayodo
 description: Внешний доступ к Home Assistant
 url: "https://ayodo.ru"
@@ -48,5 +48,5 @@ schema:
 
 ingress: true
 panel_icon: mdi:certificate
-panel_title: "Certificates"
+panel_title: "Ayodo"
 panel_admin: true

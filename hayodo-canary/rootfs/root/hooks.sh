@@ -7,10 +7,14 @@ SYS_TOKEN=$(bashio::config 'token')
 SYS_CERTFILE=$(bashio::config 'lets_encrypt.certfile')
 SYS_KEYFILE=$(bashio::config 'lets_encrypt.keyfile')
 
+# shellcheck disable=SC1091
+. /root/eventlog.sh
+
 deploy_challenge() {
     local DOMAIN="${1}" TOKEN_FILENAME="${2}" TOKEN_VALUE="${3}"
 
 	  echo " Ⓐ $(date +'%d-%m-%Y %H:%M:%S') Prepare challenge for $DOMAIN"
+    log_event "certificate" "info" "Preparing ACME challenge" "${DOMAIN}"
 
     # This hook is called once for every domain that needs to be
     # validated, including any alternative names you may have listed.
@@ -49,6 +53,7 @@ clean_challenge() {
   # The parameters are the same as for deploy_challenge.
 
   echo " Ⓐ $(date +'%d-%m-%Y %H:%M:%S') Rollback challenge for $DOMAIN"
+  log_event "certificate" "info" "Cleaning ACME challenge" "${DOMAIN}"
   curl -X POST -L "$API_URL/connect/acme-challenge" \
       -H "Content-Type: application/json" \
       -H "Accept: application/json" \
@@ -82,6 +87,7 @@ deploy_cert() {
     #   Timestamp when the specified certificate was created.
 
     echo " Ⓐ $(date +'%d-%m-%Y %H:%M:%S') Deploying certificate for $DOMAIN"
+    log_event "certificate" "info" "Deploying certificate" "${DOMAIN}"
 
     mkdir -p "/ssl"
     chmod 755 "/ssl"
@@ -90,6 +96,7 @@ deploy_cert() {
     cp -f "$KEYFILE" "/ssl/$SYS_KEYFILE"
 
     echo " Ⓐ $(date +'%d-%m-%Y %H:%M:%S') Certificate for $DOMAIN deployed!"
+    log_event "certificate" "success" "Certificate deployed" "${DOMAIN}"
 }
 
 HANDLER="$1"; shift

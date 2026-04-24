@@ -15,6 +15,9 @@ if [ "${RENEW_DAYS}" -gt 32 ]; then
   FORCE="--force "
 fi
 
+# shellcheck disable=SC1091
+. /root/eventlog.sh
+
 # shellcheck disable=SC2120
 parse_domains_txt() {
   local inputs=("${DOMAINS_TXT}")
@@ -58,12 +61,14 @@ function renew_certs() {
 
   if [ -z "${DOMAIN}" ]; then
     echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] domains.txt is empty, skip renew"
+    log_event "certificate" "warning" "domains.txt is empty, certificate renewal skipped"
     return 0
   fi
 
   if ! cert_is_valid "${DOMAIN}"; then
 
     echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Create dehydrated config..."
+    log_event "certificate" "info" "Preparing certificate renewal" "${DOMAIN}"
     cp /root/dehydrated.config "${WORK_DIR}/config"
 
     sed -i "s|^CONTACT_EMAIL=.*|CONTACT_EMAIL=\"$EMAIL\"|" "${WORK_DIR}/config"
@@ -74,10 +79,12 @@ function renew_certs() {
     mkdir -p "$WEBROOT/.well-known/acme-challenge"
 
     echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Register in Let's Encrypt"
+    log_event "certificate" "info" "Registering in Let's Encrypt" "${DOMAIN}"
     dehydrated --register --accept-terms --config "${WORK_DIR}/config"
     # shellcheck disable=SC1091
     # Issue one certificate using one line from domains.txt (CN + SAN aliases)
     echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Renew certificate for ${DOMAIN}"
+    log_event "certificate" "info" "Renewing certificate" "${DOMAIN}"
     lets_encrypt_renew "$CERT_DIR" "$WORK_DIR"
   fi
 
@@ -103,11 +110,13 @@ function cert_is_valid() {
   local DOMAIN="${1}"
   local expected_domains expected_domain
   echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Check domain ${DOMAIN}..."
+  log_event "certificate" "info" "Checking certificate" "${DOMAIN}"
 
   SYS_CERTFILE=$(bashio::config 'lets_encrypt.certfile')
 
   if [ ! -d "/ssl" ] || [ -z "$( ls -A "/ssl" )" ]; then
     echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Cert is not exist"
+    log_event "certificate" "warning" "Certificate does not exist" "${DOMAIN}"
     #return false
     return 1
   fi
@@ -118,6 +127,7 @@ function cert_is_valid() {
     for expected_domain in ${expected_domains}; do
       if ! cert_has_domain "${cert}" "${expected_domain}"; then
         echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Certificate is missing domain alias: ${expected_domain}"
+        log_event "certificate" "warning" "Certificate is missing domain alias: ${expected_domain}" "${DOMAIN}"
         return 1
       fi
     done
@@ -126,11 +136,13 @@ function cert_is_valid() {
     echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Certificate for ${DOMAIN} valid longer than ${RENEW_DAYS} days. "
     echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Certificate contains all expected domains: ${expected_domains}"
     echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Valid till ${valid}. Skipping renew!"
+    log_event "certificate" "success" "Certificate is valid, renewal skipped" "${DOMAIN}"
     echo ""
     #return true
     return 0
   fi
   echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Cert is not valid"
+  log_event "certificate" "warning" "Certificate is not valid" "${DOMAIN}"
   #return false
   return 1
 }

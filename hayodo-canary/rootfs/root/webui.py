@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 import requests
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from flask import Flask, redirect, render_template, url_for
+from flask import Flask, redirect, render_template
 
 template_dir = os.path.dirname(os.path.realpath(__file__))
 app = Flask(__name__, template_folder=template_dir)
@@ -668,14 +668,14 @@ def index():
 @app.route("/cleanup-events", methods=["POST"])
 def cleanup_events():
     cleanup_old_events(days=14)
-    return redirect(url_for("index"))
+    return redirect("./")
 
 
 @app.route("/toggle-healthcheck", methods=["POST"])
 def toggle_healthcheck():
     enabled = not load_healthcheck_config().get("enabled", True)
     save_healthcheck_config(enabled)
-    return redirect(url_for("index"))
+    return redirect("./")
 
 
 # Home Assistant ingress starts on port 8099

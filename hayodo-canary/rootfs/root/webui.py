@@ -314,15 +314,21 @@ def access_summary(status, events):
     else:
         label = "Нет данных"
 
-    public_url = ""
-    domain = status.get("synonym") or status.get("domain")
-    if domain:
-        public_url = f"https://{domain}"
+    primary_domain = status.get("domain", "")
+    additional_domain = status.get("synonym", "")
+    if additional_domain == primary_domain:
+        additional_domain = ""
+    local_host = status.get("local_host") or "homeassistant"
+    local_port = status.get("local_port")
+    local_address = f"{local_host}:{local_port}" if local_port else local_host
 
     return {
         "state": state,
         "label": label,
-        "public_url": public_url,
+        "primary_url": f"https://{primary_domain}" if primary_domain else "",
+        "additional_url": f"https://{additional_domain}" if additional_domain else "",
+        "local_address": local_address,
+        "local_url": f"https://{local_address}" if local_address else "",
         "last_success": last_success,
         "last_error": last_error,
     }

@@ -32,12 +32,13 @@ jobs:
         shell: bash
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            echo "tag_base=${{ github.event.inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+            tag_base="${{ github.event.inputs.image_tag }}"
             echo "publish_latest=false" >> "$GITHUB_OUTPUT"
           else
-            echo "tag_base=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            tag_base="${GITHUB_REF_NAME}"
             echo "publish_latest=true" >> "$GITHUB_OUTPUT"
           fi
+          echo "tag_base=${tag_base#v}" >> "$GITHUB_OUTPUT"
 
   build-per-arch:
     name: Build and push (${{ matrix.arch }})
@@ -89,10 +90,12 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           tags: |
-            ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }}-${{ matrix.arch }}
-            ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}-${{ matrix.arch }}
+            ${{ env.IMAGE_NAME }}-${{ matrix.arch }}:${{ needs.prepare.outputs.tag_base }}
+            ${{ env.IMAGE_NAME }}-${{ matrix.arch }}:sha-${{ github.sha }}
           build-args: |
             BUILD_FROM=${{ matrix.build_from }}
+            BUILD_VERSION=${{ needs.prepare.outputs.tag_base }}
+            BUILD_ARCH=${{ matrix.arch }}
             DEHYDRATED_VERSION=v0.7.2
           cache-from: type=gha,scope=publish-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=publish-${{ matrix.arch }}
@@ -118,11 +121,11 @@ jobs:
           docker buildx imagetools create \
             -t ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }} \
             -t ${{ env.IMAGE_NAME }}:sha-${{ github.sha }} \
-            ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }}-aarch64 \
-            ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }}-amd64 \
-            ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }}-armhf \
-            ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }}-armv7 \
-            ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag_base }}-i386
+            ${{ env.IMAGE_NAME }}-aarch64:${{ needs.prepare.outputs.tag_base }} \
+            ${{ env.IMAGE_NAME }}-amd64:${{ needs.prepare.outputs.tag_base }} \
+            ${{ env.IMAGE_NAME }}-armhf:${{ needs.prepare.outputs.tag_base }} \
+            ${{ env.IMAGE_NAME }}-armv7:${{ needs.prepare.outputs.tag_base }} \
+            ${{ env.IMAGE_NAME }}-i386:${{ needs.prepare.outputs.tag_base }}
 
       - name: Publish latest for release tags
         if: needs.prepare.outputs.publish_latest == 'true'

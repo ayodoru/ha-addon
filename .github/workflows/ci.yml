@@ -25,7 +25,7 @@ jobs:
 
       - name: Validate YAML
         run: |
-          yamllint repository.yaml hayodo/translations/en.yaml hayodo/translations/ru.yaml hayodo-canary/config.yaml hayodo-canary/build.yaml hayodo-canary/translations/en.yaml hayodo-canary/translations/ru.yaml
+          yamllint repository.yaml hayodo/config.yaml hayodo/translations/en.yaml hayodo/translations/ru.yaml hayodo-canary/config.yaml hayodo-canary/build.yaml hayodo-canary/translations/en.yaml hayodo-canary/translations/ru.yaml
 
   build-check:
     name: Build check (${{ matrix.arch }})
@@ -71,6 +71,8 @@ jobs:
           push: false
           build-args: |
             BUILD_FROM=${{ matrix.build_from }}
+            BUILD_VERSION=ci
+            BUILD_ARCH=${{ matrix.arch }}
             DEHYDRATED_VERSION=v0.7.2
           cache-from: type=gha,scope=ci-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=ci-${{ matrix.arch }}

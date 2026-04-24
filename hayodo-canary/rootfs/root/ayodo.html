@@ -75,9 +75,21 @@
             letter-spacing: 0;
         }
 
+        .title-row {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
         .title-link {
             color: inherit;
             text-decoration: none;
+        }
+
+        .version-badge {
+            color: var(--ayodo-muted);
+            font-size: 12px;
+            font-weight: 700;
         }
 
         h2 {
@@ -463,6 +475,7 @@
         }
 
         .health-line-chart {
+            position: relative;
             width: 100%;
             min-height: 180px;
             margin-top: 10px;
@@ -508,6 +521,36 @@
         .health-axis-label {
             fill: var(--ayodo-muted);
             font-size: 11px;
+        }
+
+        .health-axis-label.x {
+            text-anchor: middle;
+        }
+
+        .health-tooltip {
+            position: absolute;
+            z-index: 2;
+            max-width: 260px;
+            border: 1px solid var(--ayodo-line);
+            border-radius: 6px;
+            background: var(--ayodo-card);
+            color: var(--ayodo-text);
+            box-shadow: 0 8px 22px rgba(0,0,0,0.22);
+            font-size: 12px;
+            line-height: 1.35;
+            padding: 8px 10px;
+            pointer-events: none;
+            transform: translate(-50%, calc(-100% - 10px));
+        }
+
+        .health-tooltip[hidden] {
+            display: none;
+        }
+
+        .health-tooltip-time {
+            color: var(--ayodo-muted);
+            display: block;
+            margin-bottom: 4px;
         }
 
         .health-card .health-summary {
@@ -761,7 +804,10 @@
 <main>
     <header>
         <div>
-            <h1><a class="title-link" href="/config/app/56e02f95_hayodo/info?store=true" target="_blank" rel="noreferrer">Ayodo</a></h1>
+            <div class="title-row">
+                <h1><a class="title-link" href="/config/app/56e02f95_hayodo/info?store=true" target="_blank" rel="noreferrer">Ayodo</a></h1>
+                {% if version %}<span class="version-badge">v{{ version }}</span>{% endif %}
+            </div>
             <p class="muted">Внешний доступ к Home Assistant</p>
         </div>
         <span class="badge {{ access.state }}">
@@ -924,7 +970,7 @@
                     </div>
                 </div>
                 {% if health.points %}
-                    <div class="health-line-chart">
+                    <div class="health-line-chart" id="health-line-chart">
                         <svg viewBox="0 0 {{ health.chart_width }} {{ health.chart_height }}" role="img" aria-label="График времени ответа Home Assistant">
                             {% for line in health.grid_lines %}
                                 <line class="health-grid-line" x1="{{ health.axis_x }}" y1="{{ line.y }}" x2="{{ health.chart_width - health.axis_x }}" y2="{{ line.y }}"></line>
@@ -934,15 +980,19 @@
                             {% for label in health.y_labels %}
                                 <text class="health-axis-label" x="4" y="{{ label.y }}">{{ label.value }}</text>
                             {% endfor %}
+                            {% for label in health.x_labels %}
+                                <text class="health-axis-label x" x="{{ label.x }}" y="{{ health.chart_height - 2 }}">{{ label.label }}</text>
+                            {% endfor %}
                             {% if health.line_points %}
                                 <polyline class="health-line" points="{{ health.line_points }}"></polyline>
                             {% endif %}
                             {% for point in health.points %}
-                                <circle class="health-dot {% if not point.ok %}down{% endif %}" cx="{{ point.x }}" cy="{{ point.y }}" r="{% if point.ok %}3.5{% else %}4.5{% endif %}">
+                                <circle class="health-dot {% if not point.ok %}down{% endif %}" cx="{{ point.x }}" cy="{{ point.y }}" r="{% if point.ok %}3.5{% else %}4.5{% endif %}" tabindex="0" data-health-time="{{ point.timestamp }}" data-health-label="{{ point.label }}" data-health-value="{% if point.ok %}{{ point.elapsed_ms }} мс · HTTP {{ point.status_code }}{% else %}недоступен{% if point.error %}: {{ point.error }}{% endif %}{% endif %}">
                                     <title>{{ point.label }} · {% if point.ok %}{{ point.elapsed_ms }} мс · HTTP {{ point.status_code }}{% else %}недоступен{% if point.error %}: {{ point.error }}{% endif %}{% endif %}</title>
                                 </circle>
                             {% endfor %}
                         </svg>
+                        <div class="health-tooltip" id="health-tooltip" hidden></div>
                     </div>
                 {% else %}
                     <p class="empty">Проверки появятся через несколько минут после запуска аддона.</p>
@@ -1035,6 +1085,55 @@
         } catch (error) {
             return;
         }
+    })();
+
+    (() => {
+        const chart = document.getElementById("health-line-chart");
+        const tooltip = document.getElementById("health-tooltip");
+        if (!chart || !tooltip) {
+            return;
+        }
+
+        const formatTime = (rawValue, fallback) => {
+            if (!rawValue) {
+                return fallback || "";
+            }
+            const date = new Date(rawValue);
+            if (Number.isNaN(date.getTime())) {
+                return fallback || rawValue;
+            }
+            return date.toLocaleString(undefined, {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+            });
+        };
+
+        const showTooltip = (point) => {
+            const chartRect = chart.getBoundingClientRect();
+            const pointRect = point.getBoundingClientRect();
+            const left = pointRect.left - chartRect.left + pointRect.width / 2;
+            const top = pointRect.top - chartRect.top;
+
+            tooltip.innerHTML = `<span class="health-tooltip-time">${formatTime(point.dataset.healthTime, point.dataset.healthLabel)}</span><strong>${point.dataset.healthValue || ""}</strong>`;
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
+            tooltip.hidden = false;
+        };
+
+        const hideTooltip = () => {
+            tooltip.hidden = true;
+        };
+
+        chart.querySelectorAll(".health-dot").forEach((point) => {
+            point.addEventListener("mouseenter", () => showTooltip(point));
+            point.addEventListener("focus", () => showTooltip(point));
+            point.addEventListener("mouseleave", hideTooltip);
+            point.addEventListener("blur", hideTooltip);
+        });
     })();
 
     (() => {

@@ -106,6 +106,26 @@ def default_theme():
     }
 
 
+def addon_version():
+    config_paths = [
+        "/root/config.yaml",
+        os.path.abspath(os.path.join(template_dir, "..", "..", "config.yaml")),
+    ]
+
+    for config_path in config_paths:
+        if not os.path.isfile(config_path):
+            continue
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.startswith("version:"):
+                        return line.split(":", 1)[1].strip().strip('"')
+        except Exception as e:
+            logging.exception(e)
+
+    return ""
+
+
 def load_access_status():
     default_status = {
         "state": "unknown",
@@ -564,6 +584,7 @@ def build_health_summary(checks, status):
             "ok": item.get("ok", False),
             "height": height,
             "label": format_event_time(item.get("ts", "")),
+            "timestamp": item.get("ts", ""),
             "elapsed_ms": elapsed,
             "status_code": item.get("status_code"),
             "error": item.get("error", ""),
@@ -580,6 +601,25 @@ def build_health_summary(checks, status):
         grid_lines.append({"y": y})
         y_labels.append({"y": y + 4, "value": value})
 
+    x_labels = []
+    if checks:
+        first_dt = parse_event_datetime(checks[0].get("ts", ""))
+        last_dt = parse_event_datetime(checks[-1].get("ts", ""))
+        same_day = first_dt and last_dt and first_dt.date() == last_dt.date()
+        label_count = min(len(checks), 5)
+        if label_count == 1:
+            label_indexes = [0]
+        else:
+            label_indexes = sorted({round(index * (len(checks) - 1) / (label_count - 1)) for index in range(label_count)})
+
+        for index in label_indexes:
+            item_dt = parse_event_datetime(checks[index].get("ts", ""))
+            if not item_dt:
+                continue
+            label = item_dt.astimezone().strftime("%H:%M" if same_day else "%d.%m")
+            x = padding_x + round(index / point_count * plot_width)
+            x_labels.append({"x": x, "label": label})
+
     return {
         "enabled": config.get("enabled", True),
         "url": healthcheck_base_url(status),
@@ -593,6 +633,7 @@ def build_health_summary(checks, status):
         "chart_height": chart_height,
         "axis_y": chart_height - padding_y,
         "axis_x": padding_x,
+        "x_labels": x_labels,
         "availability": availability,
         "avg_ms": round(sum(latencies) / len(latencies)) if latencies else None,
     }
@@ -683,6 +724,7 @@ def index():
         events_has_more=initial_events["has_more"],
         events_next_offset=initial_events["next_offset"],
         health=health,
+        version=addon_version(),
         status=status,
         theme=theme,
     )

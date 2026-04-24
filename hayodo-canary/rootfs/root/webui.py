@@ -107,10 +107,24 @@ def default_theme():
 
 
 def addon_version():
+    version_paths = [
+        "/root/addon_version",
+    ]
     config_paths = [
         "/root/config.yaml",
         os.path.abspath(os.path.join(template_dir, "..", "..", "config.yaml")),
     ]
+
+    for version_path in version_paths:
+        if not os.path.isfile(version_path):
+            continue
+        try:
+            with open(version_path, "r", encoding="utf-8") as f:
+                version = f.read().strip().strip('"')
+                if version:
+                    return version
+        except Exception as e:
+            logging.exception(e)
 
     for config_path in config_paths:
         if not os.path.isfile(config_path):

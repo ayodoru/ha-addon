@@ -21,6 +21,7 @@ RUN pip3 install flask cryptography waitress requests --break-system-packages
 
 # Copy data for add-on
 COPY rootfs /
+RUN printf '%s' "${BUILD_VERSION}" > /root/addon_version
 
 RUN chmod +x /root/renew_certs.sh
 RUN chmod +x /root/hooks.sh

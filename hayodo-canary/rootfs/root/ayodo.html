@@ -162,14 +162,52 @@
             flex: 0 0 auto;
         }
 
+        .access-links {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .access-link-row {
+            display: grid;
+            gap: 4px;
+        }
+
+        .access-link-label {
+            color: var(--ayodo-muted);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
         .access-url {
-            display: block;
-            color: var(--ayodo-text);
-            font-size: 26px;
+            color: var(--ayodo-info);
+            font-size: 20px;
             font-weight: 700;
-            text-decoration: none;
+            line-height: 1.25;
             overflow-wrap: anywhere;
-            margin-bottom: 8px;
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 3px;
+        }
+
+        .access-url:hover,
+        .access-url:focus-visible {
+            color: var(--ayodo-primary);
+            text-decoration-thickness: 2px;
+        }
+
+        .meta-link {
+            color: var(--ayodo-info);
+            overflow-wrap: anywhere;
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 3px;
+        }
+
+        .meta-link:hover,
+        .meta-link:focus-visible {
+            color: var(--ayodo-primary);
+            text-decoration-thickness: 2px;
         }
 
         .meta-grid {
@@ -196,6 +234,33 @@
             display: block;
             font-size: 14px;
             overflow-wrap: anywhere;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+
+        .addon-link {
+            align-items: center;
+            border: 1px solid var(--ayodo-line);
+            border-radius: 6px;
+            color: var(--ayodo-info);
+            display: inline-flex;
+            font-size: 13px;
+            font-weight: 700;
+            min-height: 32px;
+            padding: 5px 10px;
+            text-decoration: none;
+        }
+
+        .addon-link:hover,
+        .addon-link:focus-visible {
+            border-color: var(--ayodo-info);
+            color: var(--ayodo-primary);
+            text-decoration: underline;
+            text-underline-offset: 3px;
         }
 
         .cert-list {
@@ -426,7 +491,7 @@
             }
 
             .access-url {
-                font-size: 21px;
+                font-size: 18px;
             }
 
             .cert-item {
@@ -518,31 +583,30 @@
                 <h2>Данные доступа</h2>
             </div>
 
-            {% if access.public_url %}
-                <a class="access-url" href="{{ access.public_url }}" target="_blank" rel="noreferrer">{{ access.public_url }}</a>
-            {% else %}
-                <p class="access-url">Домен пока не получен</p>
-            {% endif %}
-            <p class="muted">
-                {% if status.synonym and status.synonym != status.domain %}
-                    Основной домен: {{ status.domain }}
-                {% elif status.domain %}
-                    Домен выдан Ayodo
-                {% else %}
-                    Данные появятся после успешного подключения к Ayodo API.
+            <div class="access-links">
+                {% if access.primary_url %}
+                    <div class="access-link-row">
+                        <span class="access-link-label">Основной домен</span>
+                        <a class="access-url" href="{{ access.primary_url }}" target="_blank" rel="noreferrer">{{ access.primary_url }}</a>
+                    </div>
                 {% endif %}
-            </p>
+                {% if access.additional_url %}
+                    <div class="access-link-row">
+                        <span class="access-link-label">Дополнительный домен</span>
+                        <a class="access-url" href="{{ access.additional_url }}" target="_blank" rel="noreferrer">{{ access.additional_url }}</a>
+                    </div>
+                {% endif %}
+                {% if not access.primary_url and not access.additional_url %}
+                    <p class="muted">Данные появятся после успешного подключения к Ayodo API.</p>
+                {% endif %}
+            </div>
 
             <div class="meta-grid">
                 <div class="meta">
                     <span>Локальный Home Assistant</span>
-                    <strong>{{ status.local_host or "homeassistant" }}{% if status.local_port %}:{{ status.local_port }}{% endif %}</strong>
-                </div>
-                <div class="meta">
-                    <span>Туннель</span>
                     <strong>
-                        {% if status.tunnel_host %}
-                            {{ status.tunnel_host }}{% if status.tunnel_port %}:{{ status.tunnel_port }}{% endif %}
+                        {% if access.local_url %}
+                            <a class="meta-link" href="{{ access.local_url }}" target="_blank" rel="noreferrer">{{ access.local_address }}</a>
                         {% else %}
                             нет данных
                         {% endif %}
@@ -562,6 +626,9 @@
                         {% endif %}
                     </strong>
                 </div>
+            </div>
+            <div class="card-footer">
+                <a class="addon-link" href="/config/app/56e02f95_hayodo/info?store=true">Открыть аддон</a>
             </div>
         </article>
 

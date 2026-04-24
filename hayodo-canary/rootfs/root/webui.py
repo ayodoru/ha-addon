@@ -134,6 +134,15 @@ def format_event_time(raw_ts):
         return raw_ts
 
 
+def event_date(raw_ts):
+    if not raw_ts:
+        return ""
+    try:
+        return datetime.fromisoformat(raw_ts.replace("Z", "+00:00")).date().isoformat()
+    except ValueError:
+        return ""
+
+
 def parse_syslog_time(raw_line):
     match = re.match(r"^([A-Z][a-z]{2}\s+\d{1,2}\s+\d\d:\d\d:\d\d)\s+(.*)$", raw_line)
     if not match:
@@ -194,6 +203,7 @@ def load_tunnel_events(limit=30):
                 "message": f"{source}: {message}",
                 "time": format_event_time(raw_ts) if raw_ts else "",
                 "ts": raw_ts,
+                "date": event_date(raw_ts),
             })
 
     events.sort(key=lambda event: event.get("ts") or "", reverse=True)
@@ -214,6 +224,7 @@ def load_events(limit=80):
                     continue
                 event = json.loads(line)
                 event["time"] = format_event_time(event.get("ts", ""))
+                event["date"] = event_date(event.get("ts", ""))
                 events.append(event)
         except Exception as e:
             logging.exception(e)
@@ -248,6 +259,7 @@ def load_events(limit=80):
                 "status": status,
                 "message": clean,
                 "time": "",
+                "date": "",
             })
     except Exception as e:
         logging.exception(e)
@@ -284,6 +296,7 @@ def build_event_chart(events):
         item = buckets[day]
         item["height"] = max(6, round(item["total"] / max_total * 72)) if item["total"] else 4
         item["label"] = day.strftime("%d.%m")
+        item["iso_date"] = day.isoformat()
         chart.append(item)
     return chart
 
@@ -329,7 +342,7 @@ def index():
         access=access,
         chart=chart,
         certs=certs,
-        events=events[:40],
+        events=events,
         status=status,
         theme=theme,
     )

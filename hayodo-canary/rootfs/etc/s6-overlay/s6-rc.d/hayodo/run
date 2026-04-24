@@ -73,6 +73,15 @@ if [[ "$USER" == "null" || "$HOST" == "null" || "$TUNNEL_PORT" == "null" || "$SS
 fi
 echo " Ⓐ Got data from API."
 
+DOMAIN="$(echo "${DOMAIN}" | tr '[:upper:]' '[:lower:]' | xargs)"
+if [[ "${SYNONYM}" == "null" ]]; then
+  SYNONYM=""
+fi
+SYNONYM="$(echo "${SYNONYM}" | tr '[:upper:]' '[:lower:]' | xargs)"
+if [[ -z "${SYNONYM}" ]]; then
+  SYNONYM="${EXTERNAL_DOMAIN}"
+fi
+
 # Init folder structs
 mkdir -p "${CERT_DIR}"
 mkdir -p "${WORK_DIR}"

@@ -24,4 +24,5 @@ COPY rootfs /
 
 RUN chmod +x /root/renew_certs.sh
 RUN chmod +x /root/hooks.sh
+RUN chmod +x /root/eventlog.sh
 RUN chmod +x /etc/periodic/daily/check_certificate_renewal

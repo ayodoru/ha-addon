@@ -1,7 +1,9 @@
 import logging
 import os
+import json
+import re
 from glob import glob
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -35,13 +37,26 @@ def parse_cert_file(full_path):
     except x509.ExtensionNotFound:
         pass
 
+    status = "ok"
+    if days_left < 0:
+        status = "expired"
+    elif days_left < 14:
+        status = "danger"
+    elif days_left < 30:
+        status = "warning"
+
+    progress = max(0, min(100, round(days_left / 90 * 100)))
+
     return {
         "domain": common_name,
         "domains": domains,
         "domains_display": ", ".join(domains),
         "start": start.strftime("%Y-%m-%d %H:%M:%S"),
         "end": end.strftime("%Y-%m-%d %H:%M:%S"),
-        "days": days_left
+        "days": days_left,
+        "status": status,
+        "progress": progress,
+        "path": full_path,
     }
 
 
@@ -82,16 +97,242 @@ def default_theme():
     }
 
 
+def load_access_status():
+    default_status = {
+        "state": "unknown",
+        "domain": "",
+        "synonym": "",
+        "tunnel_host": "",
+        "tunnel_port": "",
+        "ssh_port": "",
+        "local_host": "",
+        "local_port": "",
+        "updated_at": "",
+    }
+
+    status_path = "/data/ayodo_status.json"
+    if not os.path.isfile(status_path):
+        return default_status
+
+    try:
+        with open(status_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        default_status.update({k: v for k, v in data.items() if v is not None})
+    except Exception as e:
+        logging.exception(e)
+
+    return default_status
+
+
+def format_event_time(raw_ts):
+    if not raw_ts:
+        return ""
+    try:
+        dt = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+        return dt.astimezone().strftime("%d.%m %H:%M")
+    except ValueError:
+        return raw_ts
+
+
+def parse_syslog_time(raw_line):
+    match = re.match(r"^([A-Z][a-z]{2}\s+\d{1,2}\s+\d\d:\d\d:\d\d)\s+(.*)$", raw_line)
+    if not match:
+        return "", raw_line
+
+    timestamp, message = match.groups()
+    year = datetime.now().year
+    try:
+        dt = datetime.strptime(f"{year} {timestamp}", "%Y %b %d %H:%M:%S")
+        return dt.astimezone().isoformat(timespec="seconds"), message
+    except ValueError:
+        return "", message
+
+
+def classify_tunnel_line(line):
+    lowered = line.lower()
+    if any(token in lowered for token in ["exited", "timeout", "failed", "error", "disconnect", "connection reset"]):
+        return "warning"
+    if any(token in lowered for token in ["starting ssh", "restart", "restarting", "successful", "remote forward success"]):
+        return "success"
+    return "info"
+
+
+def clean_tunnel_message(line):
+    message = re.sub(r"^autossh\[\d+\]:\s*", "", line).strip()
+    message = re.sub(r"^debug\d?:\s*", "", message).strip()
+    return message
+
+
+def load_tunnel_events(limit=30):
+    events = []
+    sources = [
+        ("/data/autossh.log", "Auto SSH"),
+        ("/data/ssh_tunnel.log", "SSH tunnel"),
+    ]
+
+    for path, source in sources:
+        if not os.path.isfile(path):
+            continue
+        try:
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
+                lines = f.readlines()[-limit:]
+        except Exception as e:
+            logging.exception(e)
+            continue
+
+        for line in lines:
+            raw = line.strip()
+            if not raw:
+                continue
+            raw_ts, message = parse_syslog_time(raw)
+            message = clean_tunnel_message(message)
+            if not message:
+                continue
+            events.append({
+                "type": "tunnel",
+                "status": classify_tunnel_line(message),
+                "message": f"{source}: {message}",
+                "time": format_event_time(raw_ts) if raw_ts else "",
+                "ts": raw_ts,
+            })
+
+    events.sort(key=lambda event: event.get("ts") or "", reverse=True)
+    return events[:limit]
+
+
+def load_events(limit=80):
+    events = []
+    events_path = "/data/events.jsonl"
+
+    if os.path.isfile(events_path):
+        try:
+            with open(events_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()[-limit:]
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                event = json.loads(line)
+                event["time"] = format_event_time(event.get("ts", ""))
+                events.append(event)
+        except Exception as e:
+            logging.exception(e)
+
+    tunnel_events = load_tunnel_events()
+
+    if events:
+        merged_events = list(reversed(events)) + tunnel_events
+        merged_events.sort(key=lambda event: event.get("ts") or "", reverse=True)
+        return merged_events
+
+    # Backward-compatible fallback for existing installations before events.jsonl.
+    log_path = "/data/last_run.log"
+    if not os.path.isfile(log_path):
+        return tunnel_events
+
+    try:
+        with open(log_path, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()[-25:]
+        for line in lines:
+            clean = line.strip().replace("Ⓐ", "").strip()
+            if not clean:
+                continue
+            status = "info"
+            lowered = clean.lower()
+            if "error" in lowered or "failed" in lowered or "not valid" in lowered:
+                status = "warning"
+            elif "success" in lowered or "valid" in lowered or "deployed" in lowered:
+                status = "success"
+            events.append({
+                "type": "legacy",
+                "status": status,
+                "message": clean,
+                "time": "",
+            })
+    except Exception as e:
+        logging.exception(e)
+
+    merged_events = list(reversed(events)) + tunnel_events
+    merged_events.sort(key=lambda event: event.get("ts") or "", reverse=True)
+    return merged_events
+
+
+def build_event_chart(events):
+    today = datetime.now(timezone.utc).date()
+    days = [today - timedelta(days=i) for i in range(13, -1, -1)]
+    buckets = {day: {"date": day, "total": 0, "success": 0, "warning": 0, "error": 0} for day in days}
+
+    for event in events:
+        raw_ts = event.get("ts")
+        if not raw_ts:
+            continue
+        try:
+            day = datetime.fromisoformat(raw_ts.replace("Z", "+00:00")).date()
+        except ValueError:
+            continue
+        if day not in buckets:
+            continue
+
+        status = event.get("status", "info")
+        buckets[day]["total"] += 1
+        if status in buckets[day]:
+            buckets[day][status] += 1
+
+    max_total = max([item["total"] for item in buckets.values()] + [1])
+    chart = []
+    for day in days:
+        item = buckets[day]
+        item["height"] = max(6, round(item["total"] / max_total * 72)) if item["total"] else 4
+        item["label"] = day.strftime("%d.%m")
+        chart.append(item)
+    return chart
+
+
+def access_summary(status, events):
+    access_events = [event for event in events if event.get("type") == "access"]
+    last_success = next((event for event in access_events if event.get("status") == "success"), None)
+    last_error = next((event for event in access_events if event.get("status") == "error"), None)
+
+    state = status.get("state") or "unknown"
+    if state == "connected":
+        label = "Подключено"
+    elif state == "error":
+        label = "Ошибка"
+    else:
+        label = "Нет данных"
+
+    public_url = ""
+    domain = status.get("synonym") or status.get("domain")
+    if domain:
+        public_url = f"https://{domain}"
+
+    return {
+        "state": state,
+        "label": label,
+        "public_url": public_url,
+        "last_success": last_success,
+        "last_error": last_error,
+    }
+
+
 @app.route("/")
 def index():
     certs = load_cert_info()
     theme = default_theme()
-    log = ""
-    if os.path.isfile("/data/last_run.log"):
-        with open("/data/last_run.log", "r") as f:
-            log = f.read()[-4000:]  # last 4000 chars
+    status = load_access_status()
+    events = load_events()
+    chart = build_event_chart(events)
+    access = access_summary(status, events)
 
-    return render_template('cert.html', log=log, certs=certs, theme=theme)
+    return render_template(
+        'ayodo.html',
+        access=access,
+        chart=chart,
+        certs=certs,
+        events=events[:40],
+        status=status,
+        theme=theme,
+    )
 
 
 # Home Assistant ingress starts on port 8099

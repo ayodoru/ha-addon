@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <title>Ayodo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        :root {
+            --primary-color: {{ theme.primary }};
+            --bg-color: {{ theme.bg }};
+            --bg-secondary: {{ theme.bg2 }};
+            --text-color: {{ theme.text }};
+            --muted-color: #aeb6bf;
+            --card-bg: {{ theme.card }};
+            --line-color: rgba(255,255,255,0.1);
+            --success-color: #51cf66;
+            --warning-color: #ffd43b;
+            --danger-color: #ff6b6b;
+            --info-color: #5dade2;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        main {
+            width: min(1180px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 28px 0 36px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-end;
+            margin-bottom: 20px;
+        }
+
+        h1, h2, h3, p {
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 30px;
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-bottom: 14px;
+        }
+
+        h3 {
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .muted {
+            color: var(--muted-color);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--line-color);
+            border-radius: 8px;
+            padding: 18px;
+        }
+
+        .span-7 {
+            grid-column: span 7;
+        }
+
+        .span-5 {
+            grid-column: span 5;
+        }
+
+        .span-12 {
+            grid-column: span 12;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 30px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            background: rgba(93, 173, 226, 0.14);
+            color: var(--info-color);
+        }
+
+        .badge.connected,
+        .badge.success,
+        .dot.success {
+            color: var(--success-color);
+        }
+
+        .badge.error,
+        .badge.danger,
+        .dot.error,
+        .dot.warning {
+            color: var(--danger-color);
+        }
+
+        .badge.unknown,
+        .dot.info,
+        .dot.legacy {
+            color: var(--info-color);
+        }
+
+        .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: currentColor;
+            flex: 0 0 auto;
+        }
+
+        .access-url {
+            display: block;
+            color: var(--text-color);
+            font-size: 26px;
+            font-weight: 700;
+            text-decoration: none;
+            overflow-wrap: anywhere;
+            margin-bottom: 8px;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .meta {
+            border-top: 1px solid var(--line-color);
+            padding-top: 10px;
+            min-width: 0;
+        }
+
+        .meta span {
+            display: block;
+            color: var(--muted-color);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .meta strong {
+            display: block;
+            font-size: 14px;
+            overflow-wrap: anywhere;
+        }
+
+        .cert-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .cert-item {
+            display: grid;
+            grid-template-columns: 124px minmax(0, 1fr);
+            gap: 16px;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid var(--line-color);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .gauge {
+            --value: 0;
+            --gauge-color: var(--success-color);
+            width: 108px;
+            height: 108px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background:
+                radial-gradient(closest-side, var(--card-bg) 74%, transparent 75%),
+                conic-gradient(var(--gauge-color) calc(var(--value) * 1%), rgba(255,255,255,0.12) 0);
+        }
+
+        .cert-item.warning .gauge {
+            --gauge-color: var(--warning-color);
+        }
+
+        .cert-item.danger .gauge,
+        .cert-item.expired .gauge {
+            --gauge-color: var(--danger-color);
+        }
+
+        .gauge strong {
+            font-size: 26px;
+            line-height: 1;
+        }
+
+        .gauge span {
+            display: block;
+            color: var(--muted-color);
+            font-size: 11px;
+            text-align: center;
+            margin-top: 3px;
+        }
+
+        .domain-list {
+            font-weight: 700;
+            overflow-wrap: anywhere;
+            margin-bottom: 8px;
+        }
+
+        .cert-dates {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 16px;
+            color: var(--muted-color);
+            font-size: 13px;
+        }
+
+        .chart {
+            display: grid;
+            grid-template-columns: repeat(14, 1fr);
+            gap: 8px;
+            align-items: end;
+            height: 106px;
+            margin-top: 10px;
+            padding-top: 14px;
+            border-top: 1px solid var(--line-color);
+        }
+
+        .bar-wrap {
+            display: grid;
+            gap: 6px;
+            align-items: end;
+            justify-items: center;
+            min-width: 0;
+        }
+
+        .bar {
+            width: 100%;
+            max-width: 26px;
+            min-height: 4px;
+            border-radius: 4px 4px 0 0;
+            background: var(--info-color);
+            opacity: 0.45;
+        }
+
+        .bar.has-events {
+            opacity: 1;
+        }
+
+        .bar.has-warning,
+        .bar.has-error {
+            background: var(--warning-color);
+        }
+
+        .bar.has-error {
+            background: var(--danger-color);
+        }
+
+        .bar-label {
+            color: var(--muted-color);
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        .events {
+            display: grid;
+            gap: 8px;
+        }
+
+        .tunnel-log {
+            margin-bottom: 16px;
+            padding: 12px;
+            border: 1px solid var(--line-color);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .tunnel-log h3 {
+            margin-bottom: 8px;
+        }
+
+        .event {
+            display: grid;
+            grid-template-columns: 92px 18px minmax(0, 1fr);
+            gap: 10px;
+            align-items: start;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--line-color);
+        }
+
+        .event:last-child {
+            border-bottom: 0;
+        }
+
+        .event-time {
+            color: var(--muted-color);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .event-message {
+            overflow-wrap: anywhere;
+        }
+
+        .event-domain {
+            color: var(--muted-color);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .empty {
+            color: var(--muted-color);
+            padding: 14px 0;
+        }
+
+        @media (max-width: 820px) {
+            main {
+                width: min(100% - 24px, 1180px);
+                padding-top: 20px;
+            }
+
+            header {
+                display: block;
+            }
+
+            .span-7,
+            .span-5,
+            .span-12 {
+                grid-column: span 12;
+            }
+
+            .access-url {
+                font-size: 21px;
+            }
+
+            .cert-item {
+                grid-template-columns: 96px minmax(0, 1fr);
+                gap: 12px;
+            }
+
+            .gauge {
+                width: 88px;
+                height: 88px;
+            }
+
+            .event {
+                grid-template-columns: 72px 16px minmax(0, 1fr);
+            }
+        }
+
+        @media (max-width: 560px) {
+            .meta-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart {
+                gap: 4px;
+            }
+
+            .bar-label {
+                font-size: 9px;
+                transform: rotate(-45deg);
+                transform-origin: center;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <div>
+            <h1>Ayodo</h1>
+            <p class="muted">Внешний доступ к Home Assistant</p>
+        </div>
+        <span class="badge {{ access.state }}">
+            <span class="dot {{ access.state }}"></span>
+            {{ access.label }}
+        </span>
+    </header>
+
+    <section class="grid">
+        <article class="card span-7">
+            <div class="status-row">
+                <h2>Доступ IOD</h2>
+            </div>
+
+            {% if access.public_url %}
+                <a class="access-url" href="{{ access.public_url }}" target="_blank" rel="noreferrer">{{ access.public_url }}</a>
+            {% else %}
+                <p class="access-url">Домен пока не получен</p>
+            {% endif %}
+            <p class="muted">
+                {% if status.synonym and status.synonym != status.domain %}
+                    Основной домен: {{ status.domain }}
+                {% elif status.domain %}
+                    Домен выдан Ayodo
+                {% else %}
+                    Данные появятся после успешного подключения к Ayodo API.
+                {% endif %}
+            </p>
+
+            <div class="meta-grid">
+                <div class="meta">
+                    <span>Локальный Home Assistant</span>
+                    <strong>{{ status.local_host or "homeassistant" }}{% if status.local_port %}:{{ status.local_port }}{% endif %}</strong>
+                </div>
+                <div class="meta">
+                    <span>Туннель</span>
+                    <strong>
+                        {% if status.tunnel_host %}
+                            {{ status.tunnel_host }}{% if status.tunnel_port %}:{{ status.tunnel_port }}{% endif %}
+                        {% else %}
+                            нет данных
+                        {% endif %}
+                    </strong>
+                </div>
+                <div class="meta">
+                    <span>Последнее обновление статуса</span>
+                    <strong>{{ status.updated_at or "нет данных" }}</strong>
+                </div>
+                <div class="meta">
+                    <span>Последнее успешное событие</span>
+                    <strong>
+                        {% if access.last_success %}
+                            {{ access.last_success.time }} · {{ access.last_success.message }}
+                        {% else %}
+                            нет данных
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
+        </article>
+
+        <article class="card span-5">
+            <h2>События за 14 дней</h2>
+            <p class="muted">Проверки сертификата, подключение и ошибки.</p>
+            <div class="chart">
+                {% for item in chart %}
+                    <div class="bar-wrap" title="{{ item.label }}: {{ item.total }}">
+                        <div class="bar {% if item.total %}has-events{% endif %} {% if item.warning %}has-warning{% endif %} {% if item.error %}has-error{% endif %}" style="height: {{ item.height }}px"></div>
+                        <span class="bar-label">{{ item.label }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </article>
+
+        <article class="card span-12">
+            <h2>Сертификаты</h2>
+            {% if certs %}
+                <div class="cert-list">
+                    {% for item in certs %}
+                        <section class="cert-item {{ item.status }}">
+                            <div class="gauge" style="--value: {{ item.progress }}">
+                                <div>
+                                    <strong>{{ item.days }}</strong>
+                                    <span>дней</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="domain-list">{{ item.domains_display }}</div>
+                                <div class="cert-dates">
+                                    <span>С {{ item.start }}</span>
+                                    <span>До {{ item.end }}</span>
+                                    <span>
+                                        {% if item.status == "expired" %}
+                                            Сертификат истек
+                                        {% elif item.status == "danger" %}
+                                            Нужно обновить скоро
+                                        {% elif item.status == "warning" %}
+                                            Приближается обновление
+                                        {% else %}
+                                            Все в порядке
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </section>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty">Сертификаты пока не найдены.</p>
+            {% endif %}
+        </article>
+
+        <article class="card span-12">
+            <h2>Последние события</h2>
+            <div class="tunnel-log">
+                <h3>Auto SSH</h3>
+                <p class="muted">Переподключения и состояние туннеля читаются из <strong>/data/autossh.log</strong> и <strong>/data/ssh_tunnel.log</strong>.</p>
+            </div>
+            {% if events %}
+                <div class="events">
+                    {% for event in events %}
+                        <section class="event">
+                            <time class="event-time">{{ event.time or "раньше" }}</time>
+                            <span class="dot {{ event.status }}"></span>
+                            <div>
+                                <div class="event-message">{{ event.message }}</div>
+                                {% if event.domain %}
+                                    <div class="event-domain">{{ event.domain }}</div>
+                                {% endif %}
+                            </div>
+                        </section>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty">Событий пока нет. Они появятся после запуска аддона, подключения или проверки сертификата.</p>
+            {% endif %}
+        </article>
+    </section>
+</main>
+</body>
+</html>

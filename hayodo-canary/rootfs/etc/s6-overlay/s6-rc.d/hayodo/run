@@ -7,8 +7,12 @@ API_URL="https://api.ayodo.ru/v1"
 
 TOKEN=$(bashio::config 'token')
 LOCAL_PORT=$(bashio::config 'local_port')
+LOCAL_HOST=$(bashio::config 'local_host')
 EMAIL=$(bashio::config 'email')
 EXTERNAL_DOMAIN=$(bashio::config 'external_domain')
+
+# shellcheck disable=SC1091
+. /root/eventlog.sh
 
 # Define key parameters
 KEY_TYPE="rsa"
@@ -22,6 +26,7 @@ if [[ -f "$KEY_PATH" && -f "$KEY_PATH.pub" ]]; then
     echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] SSH keys already exists"
 else
   echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Generating SSH key pair..."
+  log_event "access" "info" "Generating SSH key pair"
   if [[ -d $KEY_DIR ]]; then
       rm -rf $KEY_DIR
   fi
@@ -30,8 +35,10 @@ else
   ssh-keygen -t "$KEY_TYPE" -b "$KEY_LENGTH" -f "$KEY_PATH" -C "$KEY_COMMENT" -N ""
   if [ $? -eq 0 ]; then
       echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] SSH key pair generated successfully:"
+      log_event "access" "success" "SSH key pair generated"
   else
       echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Error generating SSH key pair."
+      log_event "access" "error" "Error generating SSH key pair"
       exit 1
   fi
 fi
@@ -44,17 +51,22 @@ fi
 EXTERNAL_DOMAIN="$(echo "${EXTERNAL_DOMAIN}" | tr '[:upper:]' '[:lower:]' | xargs)"
 
 echo " Ⓐ Request to Ayodo API..."
+log_event "access" "info" "Requesting Ayodo access data"
 if ! Response=$(curl -X POST\
     -L "$API_URL/connect/home" \
     -H "Content-Type: application/json" \
     -H "Accept: application/json" \
     -d "{\"token\":\"${TOKEN}\", \"email\":\"${EMAIL}\", \"public_key\":\"${PUBLIC_KEY}\", \"synonym\":\"${EXTERNAL_DOMAIN}\"}");
 then
+    log_event "access" "error" "Ayodo API request failed"
+    save_access_status "" "" "" "" "" "${LOCAL_HOST}" "${LOCAL_PORT}" "error"
     bashio::log.fatal "Something went wrong contacting the API. Response: {$Response}"
     return "${__BASHIO_EXIT_NOK}"
 fi
 
 if (bashio::jq.exists "${Response}" ".code") && (bashio::jq "${Response}" ".code" != 200); then
+    log_event "access" "error" "Ayodo API returned an error"
+    save_access_status "" "" "" "" "" "${LOCAL_HOST}" "${LOCAL_PORT}" "error"
     bashio::log.fatal "Something went wrong contacting the API. Response: {$Response}"
     return "${__BASHIO_EXIT_NOK}"
 fi
@@ -68,10 +80,13 @@ DOMAIN=$(bashio::jq "${Response}" ".domain")
 SYNONYM=$(bashio::jq "${Response}" ".synonym")
 
 if [[ "$USER" == "null" || "$HOST" == "null" || "$TUNNEL_PORT" == "null" || "$SSH_PORT" == "null" || "$DOMAIN" == "null" ]] ; then
+    log_event "access" "error" "Ayodo API response is incomplete"
+    save_access_status "" "" "" "" "" "${LOCAL_HOST}" "${LOCAL_PORT}" "error"
     bashio::log.fatal "Something went wrong contacting the API. Response: {$Response}"
     return "${__BASHIO_EXIT_NOK}"
 fi
 echo " Ⓐ Got data from API."
+log_event "access" "success" "Ayodo access data received" "${DOMAIN}"
 
 DOMAIN="$(echo "${DOMAIN}" | tr '[:upper:]' '[:lower:]' | xargs)"
 if [[ "${SYNONYM}" == "null" ]]; then
@@ -88,6 +103,7 @@ mkdir -p "${WORK_DIR}"
 if [[ -n "${SYNONYM}" && "${SYNONYM}" != "${DOMAIN}" ]]; then
   echo "${DOMAIN} ${SYNONYM}" > "${WORK_DIR}/domains.txt"
   echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] External domain synonym enabled: ${SYNONYM}"
+  log_event "access" "info" "External domain synonym enabled: ${SYNONYM}" "${DOMAIN}"
 else
   echo "${DOMAIN}" > "${WORK_DIR}/domains.txt"
 fi
@@ -107,15 +123,24 @@ if bashio::config.true "accept_terms"; then
 fi
 
 echo " Ⓐ Create tunnel..."
+log_event "access" "info" "Creating tunnel" "${DOMAIN}"
+
+export AUTOSSH_LOGFILE="/data/autossh.log"
+export AUTOSSH_LOGLEVEL=7
+export AUTOSSH_GATETIME=0
 
 autossh -M 20000 -fN -p "${SSH_PORT}" -R "${TUNNEL_PORT}":"localhost":"${LOCAL_PORT}" "${USER}"@"${HOST}" -i $KEY_PATH \
+ -E /data/ssh_tunnel.log \
  -o "ServerAliveInterval=10" \
  -o "ServerAliveCountMax=3" \
  -o "PubkeyAuthentication=yes" \
  -o "PasswordAuthentication=no" \
+ -o "LogLevel=VERBOSE" \
  -o "StrictHostKeyChecking=no"
 
 echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Tunnel successfully created."
+log_event "access" "success" "Tunnel successfully created" "${DOMAIN}"
+save_access_status "${DOMAIN}" "${SYNONYM}" "${HOST}" "${TUNNEL_PORT}" "${SSH_PORT}" "${LOCAL_HOST}" "${LOCAL_PORT}" "connected"
 echo " Ⓐ [$(date +'%d-%m-%Y %H:%M:%S')] Start UI"
 
 echo " Ⓐ Установка успешно завершена!"

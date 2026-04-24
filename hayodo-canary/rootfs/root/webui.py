@@ -2,15 +2,23 @@ import logging
 import os
 import json
 import re
+import threading
+import time
 from glob import glob
 from datetime import datetime, timezone, timedelta
 
+import requests
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from flask import Flask, render_template
+from flask import Flask, redirect, render_template, url_for
 
 template_dir = os.path.dirname(os.path.realpath(__file__))
 app = Flask(__name__, template_folder=template_dir)
+HEALTHCHECK_FILE = "/data/healthchecks.jsonl"
+HEALTHCHECK_CONFIG_FILE = "/data/healthcheck_config.json"
+HEALTHCHECK_INTERVAL_SECONDS = 300
+HEALTHCHECK_TIMEOUT_SECONDS = 8
+HEALTHCHECK_PATHS = ["/manifest.json", "/static/icons/favicon.ico"]
 
 
 # -----------------------------
@@ -269,6 +277,277 @@ def load_events(limit=80):
     return merged_events
 
 
+def parse_event_datetime(raw_ts):
+    if not raw_ts:
+        return None
+    try:
+        dt = datetime.fromisoformat(raw_ts.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def cleanup_jsonl_events(cutoff):
+    events_path = "/data/events.jsonl"
+    if not os.path.isfile(events_path):
+        return
+
+    kept_lines = []
+    try:
+        with open(events_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except Exception as e:
+        logging.exception(e)
+        return
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        try:
+            event = json.loads(stripped)
+        except json.JSONDecodeError:
+            kept_lines.append(line)
+            continue
+
+        event_dt = parse_event_datetime(event.get("ts", ""))
+        if event_dt is None or event_dt >= cutoff:
+            kept_lines.append(line)
+
+    try:
+        with open(events_path, "w", encoding="utf-8") as f:
+            f.writelines(kept_lines)
+    except Exception as e:
+        logging.exception(e)
+
+
+def cleanup_tunnel_log(path, cutoff):
+    if not os.path.isfile(path):
+        return
+
+    kept_lines = []
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+    except Exception as e:
+        logging.exception(e)
+        return
+
+    for line in lines:
+        raw_ts, _message = parse_syslog_time(line.strip())
+        event_dt = parse_event_datetime(raw_ts)
+        if event_dt is None or event_dt >= cutoff:
+            kept_lines.append(line)
+
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            f.writelines(kept_lines)
+    except Exception as e:
+        logging.exception(e)
+
+
+def cleanup_old_events(days=14):
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cleanup_jsonl_events(cutoff)
+    cleanup_tunnel_log("/data/autossh.log", cutoff)
+    cleanup_tunnel_log("/data/ssh_tunnel.log", cutoff)
+
+
+def healthcheck_base_url(status):
+    domain = status.get("domain", "")
+    if not domain:
+        return ""
+    return f"https://{domain}"
+
+
+def healthcheck_urls(status):
+    base_url = healthcheck_base_url(status)
+    if not base_url:
+        return []
+    return [f"{base_url}{path}" for path in HEALTHCHECK_PATHS]
+
+
+def load_healthcheck_config():
+    config = {"enabled": True}
+    if not os.path.isfile(HEALTHCHECK_CONFIG_FILE):
+        return config
+
+    try:
+        with open(HEALTHCHECK_CONFIG_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        config["enabled"] = bool(data.get("enabled", True))
+    except Exception as e:
+        logging.exception(e)
+
+    return config
+
+
+def save_healthcheck_config(enabled):
+    try:
+        os.makedirs(os.path.dirname(HEALTHCHECK_CONFIG_FILE), exist_ok=True)
+        with open(HEALTHCHECK_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump({"enabled": bool(enabled)}, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logging.exception(e)
+
+
+def append_healthcheck(entry):
+    try:
+        os.makedirs("/data", exist_ok=True)
+        with open(HEALTHCHECK_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception as e:
+        logging.exception(e)
+
+
+def trim_healthchecks(days=7, max_lines=1000):
+    if not os.path.isfile(HEALTHCHECK_FILE):
+        return
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    kept_lines = []
+    try:
+        with open(HEALTHCHECK_FILE, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except Exception as e:
+        logging.exception(e)
+        return
+
+    for line in lines[-max_lines:]:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        try:
+            item = json.loads(stripped)
+        except json.JSONDecodeError:
+            continue
+        item_dt = parse_event_datetime(item.get("ts", ""))
+        if item_dt is None or item_dt >= cutoff:
+            kept_lines.append(line)
+
+    try:
+        with open(HEALTHCHECK_FILE, "w", encoding="utf-8") as f:
+            f.writelines(kept_lines)
+    except Exception as e:
+        logging.exception(e)
+
+
+def run_healthcheck_once():
+    status = load_access_status()
+    urls = healthcheck_urls(status)
+    if not urls:
+        return
+
+    entry = {
+        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "domain": status.get("domain", ""),
+        "url": urls[0],
+        "path": HEALTHCHECK_PATHS[0],
+        "ok": False,
+        "status_code": None,
+        "elapsed_ms": None,
+        "error": "",
+    }
+
+    for url, path in zip(urls, HEALTHCHECK_PATHS):
+        started = time.monotonic()
+        entry["url"] = url
+        entry["path"] = path
+        try:
+            response = requests.get(url, timeout=HEALTHCHECK_TIMEOUT_SECONDS, allow_redirects=True)
+            entry["elapsed_ms"] = round(response.elapsed.total_seconds() * 1000)
+            entry["status_code"] = response.status_code
+            entry["ok"] = response.status_code < 500
+            entry["error"] = ""
+        except requests.RequestException as e:
+            entry["elapsed_ms"] = round((time.monotonic() - started) * 1000)
+            entry["status_code"] = None
+            entry["ok"] = False
+            entry["error"] = str(e)[:180]
+
+        if entry["ok"]:
+            break
+
+    append_healthcheck(entry)
+    trim_healthchecks()
+
+
+def healthcheck_worker():
+    time.sleep(20)
+    while True:
+        try:
+            if load_healthcheck_config().get("enabled", True):
+                run_healthcheck_once()
+        except Exception as e:
+            logging.exception(e)
+        time.sleep(HEALTHCHECK_INTERVAL_SECONDS)
+
+
+def start_healthcheck_worker():
+    worker = threading.Thread(target=healthcheck_worker, daemon=True)
+    worker.start()
+
+
+def load_healthchecks(limit=48):
+    if not os.path.isfile(HEALTHCHECK_FILE):
+        return []
+
+    checks = []
+    try:
+        with open(HEALTHCHECK_FILE, "r", encoding="utf-8") as f:
+            lines = f.readlines()[-limit:]
+    except Exception as e:
+        logging.exception(e)
+        return []
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        try:
+            item = json.loads(stripped)
+        except json.JSONDecodeError:
+            continue
+        item["time"] = format_event_time(item.get("ts", ""))
+        checks.append(item)
+
+    return checks
+
+
+def build_health_summary(checks, status):
+    config = load_healthcheck_config()
+    latest = checks[-1] if checks else None
+    successful = [item for item in checks if item.get("ok")]
+    latencies = [item.get("elapsed_ms") for item in successful if item.get("elapsed_ms") is not None]
+    max_latency = max(latencies + [1])
+    availability = round(len(successful) / len(checks) * 100) if checks else None
+
+    points = []
+    for item in checks:
+        elapsed = item.get("elapsed_ms")
+        height = max(8, round((elapsed or 0) / max_latency * 82)) if item.get("ok") and elapsed is not None else 8
+        points.append({
+            "ok": item.get("ok", False),
+            "height": height,
+            "label": format_event_time(item.get("ts", "")),
+            "elapsed_ms": elapsed,
+            "status_code": item.get("status_code"),
+            "error": item.get("error", ""),
+        })
+
+    return {
+        "enabled": config.get("enabled", True),
+        "url": healthcheck_base_url(status),
+        "path": latest.get("path", HEALTHCHECK_PATHS[0]) if latest else HEALTHCHECK_PATHS[0],
+        "latest": latest,
+        "points": points,
+        "availability": availability,
+        "avg_ms": round(sum(latencies) / len(latencies)) if latencies else None,
+    }
+
+
 def build_event_chart(events):
     today = datetime.now(timezone.utc).date()
     days = [today - timedelta(days=i) for i in range(13, -1, -1)]
@@ -342,6 +621,7 @@ def index():
     events = load_events()
     chart = build_event_chart(events)
     access = access_summary(status, events)
+    health = build_health_summary(load_healthchecks(), status)
 
     return render_template(
         'ayodo.html',
@@ -349,13 +629,28 @@ def index():
         chart=chart,
         certs=certs,
         events=events,
+        health=health,
         status=status,
         theme=theme,
     )
+
+
+@app.route("/cleanup-events", methods=["POST"])
+def cleanup_events():
+    cleanup_old_events(days=14)
+    return redirect(url_for("index"))
+
+
+@app.route("/toggle-healthcheck", methods=["POST"])
+def toggle_healthcheck():
+    enabled = not load_healthcheck_config().get("enabled", True)
+    save_healthcheck_config(enabled)
+    return redirect(url_for("index"))
 
 
 # Home Assistant ingress starts on port 8099
 if __name__ == "__main__":
     from waitress import serve
 
+    start_healthcheck_worker()
     serve(app, host="0.0.0.0", port=8099)

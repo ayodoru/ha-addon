@@ -315,17 +315,188 @@
         }
 
         .domain-list {
+            display: grid;
+            gap: 4px;
             font-weight: 700;
             overflow-wrap: anywhere;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
         }
 
         .cert-dates {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px 16px;
-            color: var(--ayodo-muted);
+            gap: 8px;
             font-size: 13px;
+        }
+
+        .cert-detail {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 6px;
+            border: 1px solid var(--ayodo-line);
+            border-radius: 6px;
+            background: var(--ayodo-card);
+            padding: 5px 8px;
+        }
+
+        .cert-detail-label {
+            color: var(--ayodo-muted);
+        }
+
+        .cert-detail-value {
+            color: var(--ayodo-text);
+            font-weight: 700;
+        }
+
+        .cert-status {
+            color: var(--ayodo-muted);
+            font-weight: 700;
+        }
+
+        .cert-status.ok {
+            color: var(--ayodo-success);
+        }
+
+        .cert-status.warning {
+            color: var(--ayodo-warning);
+        }
+
+        .cert-status.danger,
+        .cert-status.expired {
+            color: var(--ayodo-danger);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .cleanup-form {
+            flex: 0 0 auto;
+        }
+
+        .cleanup-button {
+            appearance: none;
+            border: 1px solid var(--ayodo-line);
+            border-radius: 6px;
+            background: var(--ayodo-soft);
+            color: var(--ayodo-info);
+            cursor: pointer;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            min-height: 32px;
+            padding: 5px 10px;
+        }
+
+        .cleanup-button:hover,
+        .cleanup-button:focus-visible {
+            border-color: var(--ayodo-info);
+            color: var(--ayodo-primary);
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        .health-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .health-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 14px;
+        }
+
+        .health-toggle-form {
+            flex: 0 0 auto;
+        }
+
+        .health-toggle {
+            appearance: none;
+            border: 1px solid var(--ayodo-line);
+            border-radius: 6px;
+            background: var(--ayodo-soft);
+            color: var(--ayodo-info);
+            cursor: pointer;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            min-height: 32px;
+            padding: 5px 10px;
+        }
+
+        .health-toggle.off {
+            color: var(--ayodo-danger);
+        }
+
+        .health-toggle:hover,
+        .health-toggle:focus-visible {
+            border-color: var(--ayodo-info);
+            color: var(--ayodo-primary);
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        .health-pill {
+            border: 1px solid var(--ayodo-line);
+            border-radius: 6px;
+            background: var(--ayodo-soft);
+            padding: 6px 9px;
+            font-size: 13px;
+        }
+
+        .health-pill span {
+            color: var(--ayodo-muted);
+            margin-right: 4px;
+        }
+
+        .health-pill strong {
+            color: var(--ayodo-text);
+        }
+
+        .health-chart {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(10px, 1fr));
+            gap: 5px;
+            align-items: end;
+            min-height: 118px;
+            padding-top: 12px;
+            border-top: 1px solid var(--ayodo-line);
+        }
+
+        .health-point {
+            display: grid;
+            gap: 5px;
+            align-items: end;
+            justify-items: center;
+            min-width: 0;
+        }
+
+        .health-bar {
+            width: 100%;
+            max-width: 18px;
+            min-height: 8px;
+            border-radius: 4px 4px 0 0;
+            background: var(--ayodo-success);
+        }
+
+        .health-bar.down {
+            background: var(--ayodo-danger);
+        }
+
+        .health-time {
+            color: var(--ayodo-muted);
+            font-size: 9px;
+            white-space: nowrap;
+            transform: rotate(-45deg);
+            transform-origin: center;
         }
 
         .chart {
@@ -541,7 +712,7 @@
 
     <section class="grid">
         <article class="card span-12">
-            <h2>Сертификаты</h2>
+            <h2>Сертификат</h2>
             {% if certs %}
                 <div class="cert-list">
                     {% for item in certs %}
@@ -553,11 +724,21 @@
                                 </div>
                             </div>
                             <div>
-                                <div class="domain-list">{{ item.domains_display }}</div>
+                                <div class="domain-list">
+                                    {% for domain in item.domains %}
+                                        <div>{{ domain }}</div>
+                                    {% endfor %}
+                                </div>
                                 <div class="cert-dates">
-                                    <span>С {{ item.start }}</span>
-                                    <span>До {{ item.end }}</span>
-                                    <span>
+                                    <span class="cert-detail">
+                                        <span class="cert-detail-label">Действителен с</span>
+                                        <span class="cert-detail-value">{{ item.start }}</span>
+                                    </span>
+                                    <span class="cert-detail">
+                                        <span class="cert-detail-label">Действителен до</span>
+                                        <span class="cert-detail-value">{{ item.end }}</span>
+                                    </span>
+                                    <span class="cert-detail cert-status {{ item.status }}">
                                         {% if item.status == "expired" %}
                                             Сертификат истек
                                         {% elif item.status == "danger" %}
@@ -628,13 +809,20 @@
                 </div>
             </div>
             <div class="card-footer">
-                <a class="addon-link" href="/config/app/56e02f95_hayodo/info?store=true">Открыть аддон</a>
+                <a class="addon-link" href="/config/app/56e02f95_hayodo/info?store=true" target="_blank" rel="noreferrer">Открыть аддон</a>
             </div>
         </article>
 
         <article class="card span-5">
-            <h2>События за 14 дней</h2>
-            <p class="muted">Проверки сертификата, подключение и ошибки.</p>
+            <div class="chart-header">
+                <div>
+                    <h2>События за 14 дней</h2>
+                    <p class="muted">Проверки сертификата, подключение и ошибки.</p>
+                </div>
+                <form class="cleanup-form" action="{{ url_for('cleanup_events') }}" method="post">
+                    <button class="cleanup-button" type="submit">Очистить старые</button>
+                </form>
+            </div>
             <div class="chart">
                 {% for item in chart %}
                     <button class="bar-wrap" type="button" data-chart-date="{{ item.iso_date }}" data-chart-label="{{ item.label }}" aria-pressed="false" title="{{ item.label }}: {{ item.total }}">
@@ -643,6 +831,70 @@
                     </button>
                 {% endfor %}
             </div>
+        </article>
+
+        <article class="card span-12">
+            <div class="health-header">
+                <div>
+                    <h2>Доступность Home Assistant</h2>
+                    <p class="muted">
+                        {% if health.enabled %}
+                            Health Check включён, статистика собирается каждые 5 минут.
+                        {% else %}
+                            Health Check выключен, новая статистика не собирается.
+                        {% endif %}
+                    </p>
+                </div>
+                <form class="health-toggle-form" action="{{ url_for('toggle_healthcheck') }}" method="post">
+                    <button class="health-toggle {% if not health.enabled %}off{% endif %}" type="submit">
+                        {% if health.enabled %}Выключить Health Check{% else %}Включить Health Check{% endif %}
+                    </button>
+                </form>
+            </div>
+            {% if health.url %}
+                <div class="health-summary">
+                    <div class="health-pill">
+                        <span>Основной домен</span>
+                        <strong>{{ health.url }}</strong>
+                    </div>
+                    <div class="health-pill">
+                        <span>Проверяется</span>
+                        <strong>{{ health.path }}</strong>
+                    </div>
+                    <div class="health-pill">
+                        <span>Доступность</span>
+                        <strong>{% if health.availability is not none %}{{ health.availability }}%{% else %}нет данных{% endif %}</strong>
+                    </div>
+                    <div class="health-pill">
+                        <span>Среднее время</span>
+                        <strong>{% if health.avg_ms is not none %}{{ health.avg_ms }} мс{% else %}нет данных{% endif %}</strong>
+                    </div>
+                    <div class="health-pill">
+                        <span>Последняя проверка</span>
+                        <strong>
+                            {% if health.latest %}
+                                {% if health.latest.ok %}{{ health.latest.elapsed_ms }} мс{% else %}недоступен{% endif %}
+                            {% else %}
+                                нет данных
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+                {% if health.points %}
+                    <div class="health-chart">
+                        {% for point in health.points %}
+                            <div class="health-point" title="{{ point.label }} · {% if point.ok %}{{ point.elapsed_ms }} мс · HTTP {{ point.status_code }}{% else %}недоступен{% if point.error %}: {{ point.error }}{% endif %}{% endif %}">
+                                <div class="health-bar {% if not point.ok %}down{% endif %}" style="height: {{ point.height }}px"></div>
+                                <span class="health-time">{{ point.label }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="empty">Проверки появятся через несколько минут после запуска аддона.</p>
+                {% endif %}
+            {% else %}
+                <p class="empty">Основной домен пока не получен, проверять доступность нечего.</p>
+            {% endif %}
         </article>
 
         <article class="card span-12">

@@ -5,17 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         :root {
-            --primary-color: {{ theme.primary }};
-            --bg-color: {{ theme.bg }};
-            --bg-secondary: {{ theme.bg2 }};
-            --text-color: {{ theme.text }};
-            --muted-color: #aeb6bf;
-            --card-bg: {{ theme.card }};
-            --line-color: rgba(255,255,255,0.1);
-            --success-color: #51cf66;
-            --warning-color: #ffd43b;
-            --danger-color: #ff6b6b;
-            --info-color: #5dade2;
+            color-scheme: light dark;
+            --ayodo-primary: var(--primary-color, #03a9f4);
+            --ayodo-bg: var(--primary-background-color, #f6f8fb);
+            --ayodo-bg-secondary: var(--secondary-background-color, #edf2f7);
+            --ayodo-text: var(--primary-text-color, #1f2937);
+            --ayodo-muted: var(--secondary-text-color, #64748b);
+            --ayodo-card: var(--card-background-color, #ffffff);
+            --ayodo-line: var(--divider-color, rgba(15,23,42,0.12));
+            --ayodo-soft: rgba(15,23,42,0.035);
+            --ayodo-success: var(--success-color, #2e7d32);
+            --ayodo-warning: var(--warning-color, #f9a825);
+            --ayodo-danger: var(--error-color, #d32f2f);
+            --ayodo-info: var(--info-color, #0288d1);
+            --ayodo-badge-bg: color-mix(in srgb, var(--ayodo-info) 14%, transparent);
+            --ayodo-ring-bg: rgba(15,23,42,0.12);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --ayodo-primary: var(--primary-color, {{ theme.primary }});
+                --ayodo-bg: var(--primary-background-color, {{ theme.bg }});
+                --ayodo-bg-secondary: var(--secondary-background-color, {{ theme.bg2 }});
+                --ayodo-text: var(--primary-text-color, {{ theme.text }});
+                --ayodo-muted: var(--secondary-text-color, #aeb6bf);
+                --ayodo-card: var(--card-background-color, {{ theme.card }});
+                --ayodo-line: var(--divider-color, rgba(255,255,255,0.1));
+                --ayodo-soft: rgba(255,255,255,0.035);
+                --ayodo-success: var(--success-color, #51cf66);
+                --ayodo-warning: var(--warning-color, #ffd43b);
+                --ayodo-danger: var(--error-color, #ff6b6b);
+                --ayodo-info: var(--info-color, {{ theme.primary }});
+                --ayodo-ring-bg: rgba(255,255,255,0.12);
+            }
         }
 
         * {
@@ -25,8 +47,8 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             margin: 0;
-            background: var(--bg-color);
-            color: var(--text-color);
+            background: var(--ayodo-bg);
+            color: var(--ayodo-text);
         }
 
         main {
@@ -64,7 +86,7 @@
         }
 
         .muted {
-            color: var(--muted-color);
+            color: var(--ayodo-muted);
         }
 
         .grid {
@@ -74,8 +96,8 @@
         }
 
         .card {
-            background: var(--card-bg);
-            border: 1px solid var(--line-color);
+            background: var(--ayodo-card);
+            border: 1px solid var(--ayodo-line);
             border-radius: 8px;
             padding: 18px;
         }
@@ -109,27 +131,27 @@
             border-radius: 999px;
             font-size: 13px;
             font-weight: 700;
-            background: rgba(93, 173, 226, 0.14);
-            color: var(--info-color);
+            background: var(--ayodo-badge-bg);
+            color: var(--ayodo-info);
         }
 
         .badge.connected,
         .badge.success,
         .dot.success {
-            color: var(--success-color);
+            color: var(--ayodo-success);
         }
 
         .badge.error,
         .badge.danger,
         .dot.error,
         .dot.warning {
-            color: var(--danger-color);
+            color: var(--ayodo-danger);
         }
 
         .badge.unknown,
         .dot.info,
         .dot.legacy {
-            color: var(--info-color);
+            color: var(--ayodo-info);
         }
 
         .dot {
@@ -142,7 +164,7 @@
 
         .access-url {
             display: block;
-            color: var(--text-color);
+            color: var(--ayodo-text);
             font-size: 26px;
             font-weight: 700;
             text-decoration: none;
@@ -158,14 +180,14 @@
         }
 
         .meta {
-            border-top: 1px solid var(--line-color);
+            border-top: 1px solid var(--ayodo-line);
             padding-top: 10px;
             min-width: 0;
         }
 
         .meta span {
             display: block;
-            color: var(--muted-color);
+            color: var(--ayodo-muted);
             font-size: 12px;
             margin-bottom: 4px;
         }
@@ -187,31 +209,31 @@
             gap: 16px;
             align-items: center;
             padding: 12px;
-            border: 1px solid var(--line-color);
+            border: 1px solid var(--ayodo-line);
             border-radius: 8px;
-            background: rgba(255,255,255,0.02);
+            background: var(--ayodo-soft);
         }
 
         .gauge {
             --value: 0;
-            --gauge-color: var(--success-color);
+            --gauge-color: var(--ayodo-success);
             width: 108px;
             height: 108px;
             display: grid;
             place-items: center;
             border-radius: 50%;
             background:
-                radial-gradient(closest-side, var(--card-bg) 74%, transparent 75%),
-                conic-gradient(var(--gauge-color) calc(var(--value) * 1%), rgba(255,255,255,0.12) 0);
+                radial-gradient(closest-side, var(--ayodo-card) 74%, transparent 75%),
+                conic-gradient(var(--gauge-color) calc(var(--value) * 1%), var(--ayodo-ring-bg) 0);
         }
 
         .cert-item.warning .gauge {
-            --gauge-color: var(--warning-color);
+            --gauge-color: var(--ayodo-warning);
         }
 
         .cert-item.danger .gauge,
         .cert-item.expired .gauge {
-            --gauge-color: var(--danger-color);
+            --gauge-color: var(--ayodo-danger);
         }
 
         .gauge strong {
@@ -221,7 +243,7 @@
 
         .gauge span {
             display: block;
-            color: var(--muted-color);
+            color: var(--ayodo-muted);
             font-size: 11px;
             text-align: center;
             margin-top: 3px;
@@ -237,7 +259,7 @@
             display: flex;
             flex-wrap: wrap;
             gap: 10px 16px;
-            color: var(--muted-color);
+            color: var(--ayodo-muted);
             font-size: 13px;
         }
 
@@ -249,7 +271,7 @@
             height: 106px;
             margin-top: 10px;
             padding-top: 14px;
-            border-top: 1px solid var(--line-color);
+            border-top: 1px solid var(--ayodo-line);
         }
 
         .bar-wrap {
@@ -258,6 +280,13 @@
             align-items: end;
             justify-items: center;
             min-width: 0;
+            appearance: none;
+            border: 0;
+            padding: 0;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            font: inherit;
         }
 
         .bar {
@@ -265,7 +294,7 @@
             max-width: 26px;
             min-height: 4px;
             border-radius: 4px 4px 0 0;
-            background: var(--info-color);
+            background: var(--ayodo-info);
             opacity: 0.45;
         }
 
@@ -275,34 +304,67 @@
 
         .bar.has-warning,
         .bar.has-error {
-            background: var(--warning-color);
+            background: var(--ayodo-warning);
         }
 
         .bar.has-error {
-            background: var(--danger-color);
+            background: var(--ayodo-danger);
         }
 
         .bar-label {
-            color: var(--muted-color);
+            color: var(--ayodo-muted);
             font-size: 10px;
             white-space: nowrap;
+        }
+
+        .bar-wrap:hover .bar,
+        .bar-wrap:focus-visible .bar,
+        .bar-wrap.active .bar {
+            box-shadow: 0 0 0 2px var(--ayodo-card), 0 0 0 4px var(--ayodo-info);
+        }
+
+        .events-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .events-filter {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--ayodo-muted);
+            font-size: 13px;
+        }
+
+        .filter-reset {
+            appearance: none;
+            border: 1px solid var(--ayodo-line);
+            border-radius: 6px;
+            background: var(--ayodo-soft);
+            color: var(--ayodo-text);
+            cursor: pointer;
+            font: inherit;
+            font-size: 13px;
+            min-height: 30px;
+            padding: 4px 9px;
+        }
+
+        .filter-reset:hover,
+        .filter-reset:focus-visible {
+            border-color: var(--ayodo-info);
+        }
+
+        .filter-reset[hidden],
+        .event[hidden] {
+            display: none;
         }
 
         .events {
             display: grid;
             gap: 8px;
-        }
-
-        .tunnel-log {
-            margin-bottom: 16px;
-            padding: 12px;
-            border: 1px solid var(--line-color);
-            border-radius: 8px;
-            background: rgba(255,255,255,0.02);
-        }
-
-        .tunnel-log h3 {
-            margin-bottom: 8px;
         }
 
         .event {
@@ -311,7 +373,7 @@
             gap: 10px;
             align-items: start;
             padding: 10px 0;
-            border-bottom: 1px solid var(--line-color);
+            border-bottom: 1px solid var(--ayodo-line);
         }
 
         .event:last-child {
@@ -319,7 +381,7 @@
         }
 
         .event-time {
-            color: var(--muted-color);
+            color: var(--ayodo-muted);
             font-size: 13px;
             white-space: nowrap;
         }
@@ -329,14 +391,22 @@
         }
 
         .event-domain {
-            color: var(--muted-color);
+            color: var(--ayodo-muted);
             font-size: 12px;
             margin-top: 4px;
         }
 
         .empty {
-            color: var(--muted-color);
+            color: var(--ayodo-muted);
             padding: 14px 0;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            body,
+            .card,
+            .cert-item {
+                transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+            }
         }
 
         @media (max-width: 820px) {
@@ -405,9 +475,47 @@
     </header>
 
     <section class="grid">
+        <article class="card span-12">
+            <h2>Сертификаты</h2>
+            {% if certs %}
+                <div class="cert-list">
+                    {% for item in certs %}
+                        <section class="cert-item {{ item.status }}">
+                            <div class="gauge" style="--value: {{ item.progress }}">
+                                <div>
+                                    <strong>{{ item.days }}</strong>
+                                    <span>дней</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="domain-list">{{ item.domains_display }}</div>
+                                <div class="cert-dates">
+                                    <span>С {{ item.start }}</span>
+                                    <span>До {{ item.end }}</span>
+                                    <span>
+                                        {% if item.status == "expired" %}
+                                            Сертификат истек
+                                        {% elif item.status == "danger" %}
+                                            Нужно обновить скоро
+                                        {% elif item.status == "warning" %}
+                                            Приближается обновление
+                                        {% else %}
+                                            Все в порядке
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </section>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty">Сертификаты пока не найдены.</p>
+            {% endif %}
+        </article>
+
         <article class="card span-7">
             <div class="status-row">
-                <h2>Доступ IOD</h2>
+                <h2>Данные доступа</h2>
             </div>
 
             {% if access.public_url %}
@@ -462,62 +570,26 @@
             <p class="muted">Проверки сертификата, подключение и ошибки.</p>
             <div class="chart">
                 {% for item in chart %}
-                    <div class="bar-wrap" title="{{ item.label }}: {{ item.total }}">
+                    <button class="bar-wrap" type="button" data-chart-date="{{ item.iso_date }}" data-chart-label="{{ item.label }}" aria-pressed="false" title="{{ item.label }}: {{ item.total }}">
                         <div class="bar {% if item.total %}has-events{% endif %} {% if item.warning %}has-warning{% endif %} {% if item.error %}has-error{% endif %}" style="height: {{ item.height }}px"></div>
                         <span class="bar-label">{{ item.label }}</span>
-                    </div>
+                    </button>
                 {% endfor %}
             </div>
         </article>
 
         <article class="card span-12">
-            <h2>Сертификаты</h2>
-            {% if certs %}
-                <div class="cert-list">
-                    {% for item in certs %}
-                        <section class="cert-item {{ item.status }}">
-                            <div class="gauge" style="--value: {{ item.progress }}">
-                                <div>
-                                    <strong>{{ item.days }}</strong>
-                                    <span>дней</span>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="domain-list">{{ item.domains_display }}</div>
-                                <div class="cert-dates">
-                                    <span>С {{ item.start }}</span>
-                                    <span>До {{ item.end }}</span>
-                                    <span>
-                                        {% if item.status == "expired" %}
-                                            Сертификат истек
-                                        {% elif item.status == "danger" %}
-                                            Нужно обновить скоро
-                                        {% elif item.status == "warning" %}
-                                            Приближается обновление
-                                        {% else %}
-                                            Все в порядке
-                                        {% endif %}
-                                    </span>
-                                </div>
-                            </div>
-                        </section>
-                    {% endfor %}
+            <div class="events-header">
+                <div>
+                    <h2>Последние события</h2>
+                    <p class="events-filter" id="events-filter-label">Показаны все события</p>
                 </div>
-            {% else %}
-                <p class="empty">Сертификаты пока не найдены.</p>
-            {% endif %}
-        </article>
-
-        <article class="card span-12">
-            <h2>Последние события</h2>
-            <div class="tunnel-log">
-                <h3>Auto SSH</h3>
-                <p class="muted">Переподключения и состояние туннеля читаются из <strong>/data/autossh.log</strong> и <strong>/data/ssh_tunnel.log</strong>.</p>
+                <button class="filter-reset" id="events-filter-reset" type="button" hidden>Показать все</button>
             </div>
             {% if events %}
-                <div class="events">
+                <div class="events" id="events-list">
                     {% for event in events %}
-                        <section class="event">
+                        <section class="event" data-event-date="{{ event.date or "" }}">
                             <time class="event-time">{{ event.time or "раньше" }}</time>
                             <span class="dot {{ event.status }}"></span>
                             <div>
@@ -529,11 +601,107 @@
                         </section>
                     {% endfor %}
                 </div>
+                <p class="empty" id="events-empty-filter" hidden>За выбранный день событий нет.</p>
             {% else %}
                 <p class="empty">Событий пока нет. Они появятся после запуска аддона, подключения или проверки сертификата.</p>
             {% endif %}
         </article>
     </section>
 </main>
+<script>
+    (() => {
+        const themeVars = [
+            "primary-color",
+            "primary-background-color",
+            "secondary-background-color",
+            "primary-text-color",
+            "secondary-text-color",
+            "card-background-color",
+            "divider-color",
+            "success-color",
+            "warning-color",
+            "error-color",
+            "info-color",
+        ];
+
+        const applyHomeAssistantTheme = () => {
+            try {
+                if (window.parent === window || !window.parent.document) {
+                    return;
+                }
+
+                const parentRoot = window.parent.document.documentElement;
+                const parentStyle = window.parent.getComputedStyle(parentRoot);
+                const localRoot = document.documentElement;
+
+                themeVars.forEach((name) => {
+                    const value = parentStyle.getPropertyValue(`--${name}`).trim();
+                    if (value) {
+                        localRoot.style.setProperty(`--${name}`, value);
+                    }
+                });
+            } catch (error) {
+                return;
+            }
+        };
+
+        applyHomeAssistantTheme();
+        window.addEventListener("focus", applyHomeAssistantTheme);
+        document.addEventListener("visibilitychange", applyHomeAssistantTheme);
+
+        try {
+            const parentRoot = window.parent.document.documentElement;
+            new MutationObserver(applyHomeAssistantTheme).observe(parentRoot, {
+                attributes: true,
+                attributeFilter: ["class", "style"],
+            });
+        } catch (error) {
+            return;
+        }
+    })();
+
+    (() => {
+        const bars = Array.from(document.querySelectorAll("[data-chart-date]"));
+        const events = Array.from(document.querySelectorAll("[data-event-date]"));
+        const label = document.getElementById("events-filter-label");
+        const reset = document.getElementById("events-filter-reset");
+        const empty = document.getElementById("events-empty-filter");
+
+        if (!bars.length || !events.length || !label || !reset || !empty) {
+            return;
+        }
+
+        const setFilter = (date, displayLabel) => {
+            let visibleCount = 0;
+
+            events.forEach((event) => {
+                const isVisible = !date || event.dataset.eventDate === date;
+                event.hidden = !isVisible;
+                if (isVisible) {
+                    visibleCount += 1;
+                }
+            });
+
+            bars.forEach((bar) => {
+                const isActive = Boolean(date) && bar.dataset.chartDate === date;
+                bar.classList.toggle("active", isActive);
+                bar.setAttribute("aria-pressed", String(isActive));
+            });
+
+            reset.hidden = !date;
+            empty.hidden = visibleCount > 0;
+            label.textContent = date ? `События за ${displayLabel}` : "Показаны все события";
+        };
+
+        bars.forEach((bar) => {
+            bar.addEventListener("click", () => {
+                const isActive = bar.classList.contains("active");
+                setFilter(isActive ? "" : bar.dataset.chartDate, bar.dataset.chartLabel);
+            });
+        });
+
+        reset.addEventListener("click", () => setFilter("", ""));
+    })();
+</script>
 </body>
 </html>

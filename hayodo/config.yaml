@@ -1,13 +1,14 @@
-name: Ayodo add-on (canary)
+name: Ayodo add-on
 version: "0.3.7"
-slug: hayodo-canary
+slug: hayodo
 description: Внешний доступ к Home Assistant
 url: "https://ayodo.ru"
+image: ghcr.io/ayodoru/hayodo:latest-{arch}
 startup: services
 boot: auto
 host_network: true
 init: false
-stage: experimental
+stage: stable
 advanced: false
 
 arch:

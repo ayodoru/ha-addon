@@ -10,6 +10,7 @@
   "host_network": true,
   "init": false,
   "stage": "stable",
+  "advanced": false,
   "arch": [
     "armhf",
     "armv7",
@@ -19,8 +20,7 @@
   ],
   "map": [
     "addon_config:rw",
-    "ssl:rw",
-    "share:rw"
+    "ssl:rw"
   ],
   "options": {
     "token": "",

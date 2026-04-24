@@ -193,13 +193,16 @@
 
         .access-url {
             color: var(--ayodo-info);
+            display: inline-block;
             font-size: 20px;
             font-weight: 700;
             line-height: 1.25;
+            max-width: 100%;
             overflow-wrap: anywhere;
             text-decoration: underline;
             text-decoration-thickness: 1px;
             text-underline-offset: 3px;
+            width: fit-content;
         }
 
         .access-url:hover,
@@ -210,10 +213,13 @@
 
         .meta-link {
             color: var(--ayodo-info);
+            display: inline-block;
+            max-width: 100%;
             overflow-wrap: anywhere;
             text-decoration: underline;
             text-decoration-thickness: 1px;
             text-underline-offset: 3px;
+            width: fit-content;
         }
 
         .meta-link:hover,
@@ -620,6 +626,13 @@
             gap: 8px;
         }
 
+        .events-loader {
+            color: var(--ayodo-muted);
+            font-size: 13px;
+            padding: 12px 0 0;
+            text-align: center;
+        }
+
         .event {
             display: grid;
             grid-template-columns: 92px 18px minmax(0, 1fr);
@@ -684,6 +697,26 @@
                 grid-template-columns: 1fr;
             }
 
+            .cert-card {
+                order: 1;
+            }
+
+            .access-card {
+                order: 2;
+            }
+
+            .health-card {
+                order: 3;
+            }
+
+            .events-chart-card {
+                order: 4;
+            }
+
+            .events-list-card {
+                order: 5;
+            }
+
             .access-url {
                 font-size: 18px;
             }
@@ -738,7 +771,7 @@
     </header>
 
     <section class="grid">
-        <article class="card span-12">
+        <article class="card span-12 cert-card">
             <h2>Сертификат</h2>
             {% if certs %}
                 <div class="cert-list">
@@ -831,7 +864,7 @@
             </div>
         </article>
 
-        <article class="card span-6">
+        <article class="card span-6 events-chart-card">
             <div class="chart-header">
                 <div>
                     <h2>События за 14 дней</h2>
@@ -919,7 +952,7 @@
             {% endif %}
         </article>
 
-        <article class="card span-12">
+        <article class="card span-12 events-list-card">
             <div class="events-header">
                 <div>
                     <h2>Последние события</h2>
@@ -941,6 +974,9 @@
                             </div>
                         </section>
                     {% endfor %}
+                </div>
+                <div class="events-loader" id="events-loader" data-next-offset="{{ events_next_offset }}" data-has-more="{{ 'true' if events_has_more else 'false' }}">
+                    {% if events_has_more %}Прокрутите ниже, чтобы загрузить ещё события{% endif %}
                 </div>
                 <p class="empty" id="events-empty-filter" hidden>За выбранный день событий нет.</p>
             {% else %}
@@ -1003,25 +1039,112 @@
 
     (() => {
         const bars = Array.from(document.querySelectorAll("[data-chart-date]"));
-        const events = Array.from(document.querySelectorAll("[data-event-date]"));
+        const eventsList = document.getElementById("events-list");
         const label = document.getElementById("events-filter-label");
         const reset = document.getElementById("events-filter-reset");
         const empty = document.getElementById("events-empty-filter");
+        const loader = document.getElementById("events-loader");
+        const pageSize = 30;
+        let activeDate = "";
+        let nextOffset = loader ? Number(loader.dataset.nextOffset || 0) : 0;
+        let hasMore = loader ? loader.dataset.hasMore === "true" : false;
+        let isLoading = false;
 
-        if (!bars.length || !events.length || !label || !reset || !empty) {
+        if (!bars.length || !eventsList || !label || !reset || !empty || !loader) {
             return;
         }
 
-        const setFilter = (date, displayLabel) => {
-            let visibleCount = 0;
+        const eventMarkup = (event) => {
+            const section = document.createElement("section");
+            section.className = "event";
+            section.dataset.eventDate = event.date || "";
 
-            events.forEach((event) => {
-                const isVisible = !date || event.dataset.eventDate === date;
-                event.hidden = !isVisible;
-                if (isVisible) {
-                    visibleCount += 1;
-                }
+            const time = document.createElement("time");
+            time.className = "event-time";
+            time.textContent = event.time || "раньше";
+
+            const dot = document.createElement("span");
+            dot.className = `dot ${event.status || "info"}`;
+
+            const body = document.createElement("div");
+            const message = document.createElement("div");
+            message.className = "event-message";
+            message.textContent = event.message || "";
+            body.appendChild(message);
+
+            if (event.domain) {
+                const domain = document.createElement("div");
+                domain.className = "event-domain";
+                domain.textContent = event.domain;
+                body.appendChild(domain);
+            }
+
+            section.appendChild(time);
+            section.appendChild(dot);
+            section.appendChild(body);
+            return section;
+        };
+
+        const updateEmptyState = () => {
+            empty.hidden = eventsList.children.length > 0;
+        };
+
+        const updateLoaderText = () => {
+            if (isLoading) {
+                loader.textContent = "Загрузка событий...";
+            } else if (hasMore) {
+                loader.textContent = "Прокрутите ниже, чтобы загрузить ещё события";
+            } else {
+                loader.textContent = eventsList.children.length ? "Все события загружены" : "";
+            }
+        };
+
+        const loadEvents = async ({ resetList = false } = {}) => {
+            if (isLoading || (!hasMore && !resetList)) {
+                return;
+            }
+
+            isLoading = true;
+            updateLoaderText();
+
+            const params = new URLSearchParams({
+                offset: resetList ? "0" : String(nextOffset),
+                limit: String(pageSize),
             });
+            if (activeDate) {
+                params.set("date", activeDate);
+            }
+
+            try {
+                const response = await fetch(`./events?${params.toString()}`, { headers: { "Accept": "application/json" } });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+
+                if (resetList) {
+                    eventsList.replaceChildren();
+                }
+
+                (data.events || []).forEach((event) => {
+                    eventsList.appendChild(eventMarkup(event));
+                });
+
+                nextOffset = data.next_offset || eventsList.children.length;
+                hasMore = Boolean(data.has_more);
+            } catch (error) {
+                loader.textContent = "Не удалось загрузить события";
+            } finally {
+                isLoading = false;
+                updateEmptyState();
+                updateLoaderText();
+            }
+        };
+
+        const setFilter = (date, displayLabel) => {
+            activeDate = date || "";
+            nextOffset = 0;
+            hasMore = true;
 
             bars.forEach((bar) => {
                 const isActive = Boolean(date) && bar.dataset.chartDate === date;
@@ -1030,8 +1153,8 @@
             });
 
             reset.hidden = !date;
-            empty.hidden = visibleCount > 0;
             label.textContent = date ? `События за ${displayLabel}` : "Показаны все события";
+            loadEvents({ resetList: true });
         };
 
         bars.forEach((bar) => {
@@ -1042,6 +1165,16 @@
         });
 
         reset.addEventListener("click", () => setFilter("", ""));
+
+        const observer = new IntersectionObserver((entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) {
+                loadEvents();
+            }
+        }, { rootMargin: "240px" });
+
+        observer.observe(loader);
+        updateEmptyState();
+        updateLoaderText();
     })();
 </script>
 </body>
